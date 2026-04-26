@@ -1,0 +1,1674 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Hướng dẫn sử dụng hệ thống đặt phòng Mimosa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --bg: #0F172A;
+            --card-bg: #ffffff;
+            --card-soft: #f8fafc;
+            --accent: #2563eb;
+            --accent-soft: #0ea5e9;
+            --accent-subtle: #dbeafe;
+            --text: #0f172a;
+            --text-muted: #6b7280;
+            --border: #e2e8f0;
+            --danger: #dc2626;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --shadow-soft: 0 22px 60px rgba(15, 23, 42, 0.18);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 15px;
+            line-height: 1.7;
+            background: radial-gradient(circle at top, #e5edff 0, #eef2ff 40%, #e2e8f0 100%);
+            color: var(--text);
+        }
+
+        .page {
+            max-width: 1180px;
+            margin: 28px auto 40px;
+            padding: 0 16px 32px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            border-radius: 22px;
+            padding: 20px 26px 22px;
+            box-shadow: var(--shadow-soft);
+            color: #eef2ff;
+        }
+
+        .header-top {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            font-size: 13px;
+            opacity: .95;
+        }
+
+        .header-top span {
+            color: #e5e7eb;
+        }
+
+        .badge-role {
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(191,219,254,0.8);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15,23,42,0.22);
+            color: #e5e7eb;
+            font-size: 13px;
+        }
+
+        .badge-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 0 4px rgba(34,197,94,0.20);
+        }
+
+        .header-main {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+            gap: 18px;
+            align-items: center;
+        }
+
+        .title-block h1 {
+            margin: 0;
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: #f9fafb;
+        }
+
+        .title-block p {
+            margin: 6px 0 0;
+            font-size: 14px;
+            color: #e0e7ff;
+            max-width: 640px;
+        }
+
+        .pill-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+        }
+
+        .pill {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            padding: 6px 11px;
+            border-radius: 999px;
+            border: 1px solid rgba(191,219,254,0.9);
+            background: rgba(15,23,42,0.18);
+            color: #e5e7eb;
+        }
+
+        .pill--accent {
+            border-color: rgba(56,189,248,0.9);
+            background: radial-gradient(circle at top left,
+            rgba(56,189,248,0.35),
+            rgba(59,130,246,0.4));
+        }
+
+        main {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.7fr);
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        @media (max-width: 992px) {
+            main {
+                grid-template-columns: minmax(0,1fr);
+            }
+            header {
+                border-radius: 0 0 22px 22px;
+            }
+            .toc {
+                position: static;
+            }
+        }
+
+        /* SIDEBAR – TOC (sticky, viền đen) */
+        .toc {
+            position: sticky;
+            top: 80px;
+            background: #f9fafb;
+            border-radius: 18px;
+            border: 1px solid #020617;
+            padding: 16px 14px 18px;
+            box-shadow: 0 20px 50px rgba(15,23,42,0.20);
+            overflow: hidden;
+        }
+
+        .toc::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            border: 1px solid rgba(148,163,184,0.45);
+            pointer-events: none;
+            mix-blend-mode: multiply;
+        }
+
+        .toc-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .toc-section-title {
+            margin-top: 12px;
+            margin-bottom: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .16em;
+            color: #111827;
+            opacity: .7;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .toc li + li {
+            margin-top: 4px;
+        }
+
+        .toc a {
+            color: var(--text);
+            text-decoration: none;
+            border-radius: 9px;
+            padding: 6px 9px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background .12s ease, color .12s ease, transform .06s ease, box-shadow .12s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .toc a span {
+            color: var(--text-muted);
+            font-size: 12px;
+            min-width: 36px;
+            font-weight: 500;
+        }
+
+        .toc a:hover {
+            background: #0f172a;
+            color: #f9fafb;
+            transform: translateX(1px);
+            box-shadow: 0 10px 25px rgba(15,23,42,0.35);
+        }
+
+        /* SECTION CHÍNH */
+        .section {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            padding: 18px 20px 18px;
+            box-shadow: 0 18px 45px rgba(15,23,42,0.12);
+            transition: box-shadow .18s ease, transform .12s ease, border-color .12s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 22px 60px rgba(15,23,42,0.16);
+            transform: translateY(-2px);
+            border-color: #bfdbfe;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 6px;
+            cursor: pointer;
+        }
+
+        .section h2 {
+            margin: 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text);
+        }
+
+        .section h2 span.number {
+            width: 26px;
+            height: 26px;
+            border-radius: 999px;
+            background: var(--accent-subtle);
+            border: 1px solid rgba(59,130,246,0.9);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+
+        .section small {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .section p {
+            margin: 6px 0 8px;
+            font-size: 15px;
+            color: var(--text);
+        }
+
+        .chip-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .chip {
+            font-size: 12px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            border: 1px solid #e5e7eb;
+            color: var(--text-muted);
+            background: var(--card-soft);
+        }
+
+        .chip--role {
+            border-color: rgba(34,197,94,0.35);
+            color: #15803d;
+            background: #dcfce7;
+        }
+
+        .chip--warning {
+            border-color: rgba(248,113,113,0.5);
+            color: #b91c1c;
+            background: #fee2e2;
+        }
+
+        .block {
+            margin-top: 10px;
+            padding: 11px 14px 11px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, #f8fafc, #ffffff);
+            border: 1px solid #e5e7eb;
+            font-size: 15px;
+        }
+
+        .block + .block {
+            margin-top: 10px;
+        }
+
+        .block-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #111827;
+        }
+
+        .block-title span.tag {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--text-muted);
+        }
+
+        ol.steps {
+            padding-left: 20px;
+            margin: 6px 0 10px;
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        ol.steps li {
+            margin-bottom: 8px;
+        }
+
+        ol.steps > div {
+            margin: 14px 0 20px !important;
+            text-align: center;
+        }
+
+        ol.steps > div img {
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        .note {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .danger {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        img {
+            max-width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(148,163,184,0.35);
+            box-shadow: 0 8px 18px rgba(15,23,42,0.16);
+        }
+
+        footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .section.collapsed > *:not(.section-header) {
+            display: none;
+        }
+
+        .section.collapsed .section-header small::after {
+            content: " – bấm để xem chi tiết";
+            color: var(--accent-soft);
+            font-weight: 500;
+        }
+
+        .section-header::after {
+            content: "▾";
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-left: 6px;
+            transition: transform .15s ease;
+        }
+
+        .section.collapsed .section-header::after {
+            transform: rotate(-90deg);
+        }
+    </style>
+
+</head>
+<body>
+<div class="page">
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-top">
+            <div>
+                <span style="font-size:13px;color:#E5E7EB;">Tài liệu hướng dẫn sử dụng phần mềm</span>
+            </div>
+            <div class="badge-role">
+                <span class="badge-dot"></span>
+                <span>Dùng cho Lễ tân &amp; Quản lý khách sạn Mimosa</span>
+            </div>
+        </div>
+
+        <div class="header-main">
+            <div class="title-block">
+                <h1>Hướng dẫn sử dụng hệ thống đặt phòng Mimosa</h1>
+                <p>
+                    Tài liệu này mô tả các bước thao tác chi tiết trên phần mềm quản lý thông tin đặt phòng:
+                    quản lý phòng, đặt phòng, check-in/check-out, dịch vụ, hoá đơn, khuyến mãi, thống kê và
+                    chức năng dành cho quản lý. Người mới chỉ cần đi theo từng bước là có thể sử dụng hệ thống.
+                </p>
+            </div>
+            <div class="pill-group">
+                <div class="pill pill--accent">Lễ tân</div>
+                <div class="pill">Quản lý</div>
+                <div class="pill">Đặt phòng &amp; hoá đơn</div>
+                <div class="pill">Thống kê – Báo cáo</div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+
+        <!-- SIDEBAR TOC -->
+        <aside class="toc">
+            <div class="toc-title">Mục lục nhanh</div>
+
+            <div class="toc-section-title">Lễ tân</div>
+            <ul>
+                <li><a href="#sec-reception"><span>1</span>Chức năng của nhân viên lễ tân</a></li>
+                <li><a href="#sec-booking"><span>1.2</span>Đặt phòng, check-in, check-out</a></li>
+                <li><a href="#sec-services"><span>1.3</span>Dịch vụ, đổi phòng, gợi ý phòng</a></li>
+                <li><a href="#sec-bill"><span>1.4</span>Hoá đơn &amp; thanh toán</a></li>
+                <li><a href="#sec-customer"><span>1.5</span>Quản lý khách hàng</a></li>
+                <li><a href="#sec-dash-forget"><span>1.6</span>Thống kê dịch vụ</a></li>
+            </ul>
+
+            <div class="toc-section-title">Quản lý</div>
+            <ul>
+                <li><a href="#sec-manager"><span>2</span>Chức năng của nhân viên quản lý</a></li>
+                <li><a href="#sec-employee"><span>2.1</span>Quản lý nhân viên</a></li>
+                <li><a href="#sec-promotion"><span>2.2</span>Quản lý khuyến mãi</a></li>
+                <li><a href="#sec-service-mgmt"><span>2.3</span>Quản lý dịch vụ</a></li>
+                <li><a href="#sec-income"><span>2.4</span>Thống kê hoá đơn &amp; doanh thu</a></li>
+            </ul>
+        </aside>
+
+        <!-- CONTENT -->
+        <section>
+
+            <!-- 1. Lễ tân -->
+            <article class="section" id="sec-reception">
+                <div class="section-header">
+                    <h2><span class="number">1</span>Chức năng của nhân viên lễ tân</h2>
+                    <small>Quản lý phòng, đặt phòng, hoá đơn và thông tin khách hàng</small>
+                </div>
+
+                <p>
+                    Lễ tân là người trực tiếp thao tác với hệ thống trong quá trình phục vụ khách:
+                    tìm kiếm phòng, đặt nhiều phòng cùng lúc, nhận – trả phòng, thêm dịch vụ,
+                    gia hạn hoặc đổi phòng khi khách có nhu cầu. Mọi thao tác đều được ghi nhận
+                    lại để phục vụ cho hoá đơn và thống kê.
+                </p>
+
+                <div class="chip-row">
+                    <div class="chip chip--role">Vai trò: Nhân viên lễ tân</div>
+                    <div class="chip">Màn hình: Quản lý phòng, Đặt phòng</div>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.1.1. Tìm kiếm / lọc phòng theo mã – tình trạng
+                        <span class="tag">Quản lý phòng</span>
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhập mã phòng vào ô tìm kiếm hoặc chọn bộ lọc theo tình trạng (Trống, Đặt, Check-in…).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3111_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống hiển thị danh sách phòng phù hợp với mã hoặc điều kiện lọc.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3111_b2_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3111_b2_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+
+                    <p class="note">Tip: dùng lọc tình trạng để nhanh chóng xem các phòng còn trống.</p>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.1.2. Thêm phòng mới <span class="tag">Chỉ quản lý</span>
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhập đầy đủ thông tin: mã phòng, loại phòng, view, mô tả, ảnh phòng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3112.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhấn nút <span class="highlight">“Thêm”</span>.</li>
+                        <li><b>B3:</b> Sau khi thêm thành công, danh sách phòng sẽ tự động làm mới.</li>
+                    </ol>
+                    <p class="note danger">
+                        Lưu ý: mã phòng là duy nhất, không được phép trùng.
+                    </p>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.1.3. Cập nhật thông tin phòng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Bấm vào phòng cần sửa trong danh sách.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3113_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhấn nút <span class="highlight">“Cập nhật”</span>, hệ thống hiện popup thông tin phòng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3113_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Sửa các thông tin cho phép (không sửa được mã phòng) rồi nhấn <span class="highlight">“Lưu”</span>.</li>
+                        <li><b>B4:</b> Double-click lại vào phòng để kiểm tra thông tin sau khi đã lưu.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3113_b34.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- 1.2 Đặt phòng / Checkin / Checkout -->
+            <article class="section" id="sec-booking">
+                <div class="section-header">
+                    <h2><span class="number">1.2</span>Đặt phòng, Check-in, Check-out</h2>
+                    <small>Từ tìm phòng đến hoàn tất lưu trú cho khách</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.2.1. Tìm kiếm / lọc phòng khi đặt
+                        <span class="tag">Đặt phòng</span>
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhập mã phòng hoặc lọc theo loại phòng, trạng thái, view.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3121_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống hiển thị các phòng đáp ứng điều kiện.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3121_b2_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3121_b2_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.2.2. Đặt nhiều phòng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Chọn các phòng cần đặt trong danh sách.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhấn nút <span class="highlight">“Đặt nhiều phòng”</span> (hoặc phím tắt F4).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b2_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b2_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Nhập thông tin khách hàng (họ tên, SĐT, CCCD, …) vào form.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B4:</b> Thiết lập thời gian mặc định cho toàn bộ phòng (nếu muốn).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b4.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B5:</b> Với từng phòng, có thể bấm <span class="highlight">“Tùy chỉnh”</span> để chỉnh kiểu đặt, giờ check-in/check-out riêng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b5_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b5_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B6:</b> Nhấn <span class="highlight">“Đặt phòng”</span> để hoàn tất (hoặc <b>“Hủy”</b> nếu không tiếp tục).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b6.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B7:</b> Hệ thống thông báo danh sách phòng đặt thành công.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3122_b7.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B8:</b> Các phòng này chuyển sang trạng thái <b>“Đặt”</b>.</li>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.2.3. Check-in (nhận phòng)
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Tìm các phòng đang ở trạng thái <b>“Đặt”</b> đến thời gian nhận.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3123_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Chọn một hoặc nhiều phòng, nhấn nút <span class="highlight">“Check-in”</span>.</li>
+                        <li><b>B3:</b> Hệ thống thông báo check-in thành công, phòng chuyển sang trạng thái<b>“Check-in”</b> (đang ở).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3123_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.2.4. Check-out (trả phòng)
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Tìm phòng đang ở trạng thái <b>“Check-in”</b> đến giờ trả phòng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3124_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Chọn phòng, nhấn <span class="highlight">“Check-out”</span>.</li>
+                        <li><b>B3:</b> Hệ thống xác nhận và chuyển phòng sang trạng thái <b>“Trống”</b>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3124_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.2.5. Hủy đặt phòng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Tìm phòng đang ở trạng thái <b>“Đặt”</b>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3125_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Click chuột phải → chọn <span class="highlight">“Hủy đặt phòng”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3125_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Xác nhận thông báo của hệ thống.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3125_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B4:</b> Sau khi hủy, giao diện danh sách phòng được làm mới.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3125_b4.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                    <p class="note danger">Hủy đặt phòng chỉ áp dụng khi khách chưa nhận phòng.</p>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.2.6. Gia hạn phòng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Với phòng trạng thái <b>“Đặt”</b> hoặc <b>“Check-in”</b>, click chuột phải chọn <span class="highlight">“Gia hạn phòng”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3126_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhập thời gian mới cần gia hạn.</li>
+                        <li><b>B3:</b> Nhấn <span class="highlight">“Gia hạn”</span>, hệ thống cập nhật lại thời gian và tiền phòng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3126_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- 1.3 Dịch vụ, đổi phòng, gợi ý -->
+            <article class="section" id="sec-services">
+                <div class="section-header">
+                    <h2><span class="number">1.3</span>Dịch vụ, đổi phòng &amp; gợi ý phòng</h2>
+                    <small>Ghi nhận dịch vụ phát sinh và xử lý nhu cầu thay đổi của khách</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.3.1. Thêm dịch vụ cho phòng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Tìm phòng đang ở trạng thái <b>“Check-in”</b>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3127_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhấn <span class="highlight">“Thêm dịch vụ cho phòng”</span>.</li>
+                        <li><b>B3:</b> Chọn dịch vụ, nhập số lượng (không âm, không vượt tồn kho).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3127_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3127_b4_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B4:</b> Xác nhận để lưu; hệ thống báo thêm dịch vụ thành công.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3127_b4_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.3.2. Đổi phòng (trước check-in)
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Tìm phòng ở trạng thái <b>“Đặt”</b>, chọn <span class="highlight">“Đổi phòng (trước check-in)”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3128_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống hiển thị danh sách phòng trống có thể đổi.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3128_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Chọn phòng mới và xem chi tiết so sánh với phòng cũ.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3128_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B4:</b> Có thể thiết lập lại thời gian, nhấn <span class="highlight">“Tính giá”</span> để xem giá mới.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3128_b4.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3128_b5.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B5:</b> Xác nhận đổi phòng; phòng cũ trở lại trạng thái trống, phòng mới chuyển sang “Đặt”.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3128_b6.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3128_b7.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.3.3. Đổi phòng (sau check-in)
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Tìm phòng đang <b>“Check-in”</b>, chọn <span class="highlight">“Đổi phòng (đã check-in)”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3129_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Chọn phòng trống muốn chuyển sang và xem chi tiết phòng chuẩn bị đổi.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3129_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3129_b4.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Thiết lập <b>thời điểm chuyển phòng</b>, nhấn “Chọn thời điểm chuyển” để mở giao diện giờ chuyển.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3129_b6_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3129_b6_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li>Nhấn nút <b>OK</b> để xác nhận thời gian chuyển</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3129_b6_3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B4:</b> Hệ thống tự tính lại phí phòng cũ (từ check-in → thời điểm chuyển) và phòng mới (từ thời điểm chuyển → check-out).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3129_b7.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B5:</b> Xác nhận đổi phòng; phòng cũ trở về “Trống”, phòng mới trở thành “Check-in”.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3129_b8.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.3.4. Gợi ý phòng theo số người
+                    </div>
+                    <ol class="steps">
+                        <li><b>B2:</b> Nhập số người lớn, trẻ em theo nhu cầu của khách.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_31210_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B1:</b> Nhấn nút <span class="highlight">“Gợi ý phòng”</span> (hoặc phím F5).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_31210_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Hệ thống gợi ý các tổ hợp phòng phù hợp nhất.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_31210_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B4:</b> Chọn phương án phù hợp và tiến hành đặt phòng từ danh sách gợi ý.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_31210_b4.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_31210_b5.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- 1.4 Hoá đơn -->
+            <article class="section" id="sec-bill">
+                <div class="section-header">
+                    <h2><span class="number">1.4</span>Quản lý hoá đơn &amp; thanh toán</h2>
+                    <small>Từ lịch sử hoá đơn đến thanh toán cho khách</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.4.1. Tìm kiếm hoá đơn
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhập mã phòng, tên khách hàng hoặc mã hoá đơn; có thể chọn ngày để lọc.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3131_b1_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3131_b1_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống hiển thị danh sách hoá đơn phù hợp.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3131_b2_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.4.2. Truy vấn lịch sử hoá đơn
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhấn <span class="highlight">“Truy vấn lịch sử”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3132_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống hiển thị tất cả hoá đơn đã thanh toán.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3132_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Chọn hoá đơn bất kỳ để in lại khi khách yêu cầu.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3132_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.4.3. Thanh toán hoá đơn
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Chọn hoá đơn cần thanh toán.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống yêu cầu <b>phải check-out toàn bộ phòng</b> trước khi thanh toán.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Sau khi khách hàng check-out hoàn tất toàn bộ phòng, hóa đơn bây giờ đã có thể thanh toán</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B4:</b> Khi đủ điều kiện, có thể nhấn <span class="highlight">“Chọn/đổi khuyến mãi”</span>để áp dụng ưu đãi.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b4_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b4_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B5:</b> Chọn hình thức thanh toán: tiền mặt hoặc quét mã QR.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b5_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B6:</b> Nếu số tiền khách đưa chưa đủ, hệ thống sẽ cảnh báo.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b5_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B7:</b> Nhấn <span class="highlight">“Thanh toán”</span> để hoàn tất và hoá đơn sẽ được in tự động.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b6.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3133_b7.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- 1.5 Khách hàng -->
+            <article class="section" id="sec-customer">
+                <div class="section-header">
+                    <h2><span class="number">1.5</span>Quản lý khách hàng</h2>
+                    <small>Theo dõi thông tin &amp; điểm thân thiết của khách</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.5.1. Tìm kiếm &amp; lọc theo điểm thân thiết
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhập tên hoặc mã khách hàng, hoặc lọc theo mức điểm thân thiết.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3141_b1_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3141_b1_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống hiển thị danh sách khách tương ứng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3141_b2_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3141_b2_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.5.2. Thêm khách hàng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhấn nút <span class="highlight">“Thêm khách hàng”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3142_b1_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3142_b1_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhập đầy đủ thông tin (không trùng SĐT, email, CCCD).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3142_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Nhấn <span class="highlight">“Lưu”</span> để hoàn tất.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3142_b3_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3142_b3_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                    <p class="note danger">Nếu trùng SĐT, email hoặc CCCD hệ thống sẽ báo lỗi và không cho lưu.</p>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.5.3. Cập nhật thông tin khách hàng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Chọn khách cần chỉnh sửa → nhấn <span class="highlight">“Cập nhật”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3143_b1_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3143_b1_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Thay đổi thông tin trong form.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3143_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Nhấn <span class="highlight">“Lưu”</span> để cập nhật.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3143_b3_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3143_b3_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- 1.6 Thống kê + Quên mật khẩu -->
+            <article class="section" id="sec-dash-forget">
+                <div class="section-header">
+                    <h2><span class="number">1.6</span>Thống kê dịch vụ &amp; thu nhập (kiểu đặt phòng)</h2>
+                    <small>Các chức năng thống kê dành cho lễ tân và hỗ trợ đăng nhập</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.6.1. Thống kê dịch vụ &amp; thu nhập theo kiểu đặt phòng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Chọn ngày bắt đầu trên lịch.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_316_b1.jpg"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Chọn ngày kết thúc.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_316_b2.jpg"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Nhấn <span class="highlight">“Thống kê”</span> để xem:
+                            <ul class="note" style="margin-top:4px;">
+                                <li>Báo cáo <span class="highlight">thống kê dịch vụ</span> theo khoảng thời gian.</li>
+                                <div style="margin-top:8px;text-align:center;">
+                                    <img src="img/img_4111_b1.png"
+                                         alt="Màn hình tìm kiếm / lọc phòng"
+                                         style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                                </div>
+                                <li>Biểu đồ <span class="highlight">thu nhập theo kiểu đặt phòng</span> (giờ / đêm / ngày).</li>
+                                <div style="margin-top:8px;text-align:center;">
+                                    <img src="img/img_4111_b2.png"
+                                         alt="Màn hình tìm kiếm / lọc phòng"
+                                         style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                                </div>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.6.2. Dashboard mục tiêu &amp; cảnh báo (quản lý)
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhấn <span class="highlight">“Thay đổi”</span> để sửa nội dung mục tiêu và cảnh báo.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_317_b1.jpg"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhập nội dung gợi ý hành động, cảnh báo cần hiển thị cho lễ tân.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_317_b2.jpg"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Nhấn <span class="highlight">“Xác nhận”</span> để lưu, nội dung sẽ hiển thị cho toàn bộ nhân viên.</li>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        1.6.3. Quên mật khẩu
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Tại màn hình đăng nhập, chọn <span class="highlight">“Quên mật khẩu”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_318_b1.jpg"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhập tên đăng nhập (mã nhân viên) và xác nhận.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_318_b2.jpg"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Xác nhận email khôi phục.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_318_b3.jpg"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B4:</b> Mở Gmail, lấy mã OTP được gửi.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_4111_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B5:</b> Nhập OTP, sau đó nhập mật khẩu mới hai lần để xác nhận.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_318_b4.jpg"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B6:</b> Nhấn OK, hệ thống báo đổi mật khẩu thành công và quay lại màn hình đăng nhập.</li>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- 2. Quản lý -->
+            <article class="section" id="sec-manager">
+                <div class="section-header">
+                    <h2><span class="number">2</span>Chức năng của nhân viên quản lý</h2>
+                    <small>Quản lý nhân viên, khuyến mãi, dịch vụ và báo cáo</small>
+                </div>
+                <p>
+                    Nhân viên quản lý có toàn bộ quyền của lễ tân, đồng thời được phép thêm/xoá/sửa
+                    nhân viên, cấu hình giá dịch vụ, chương trình khuyến mãi và xem các báo cáo
+                    tài chính chi tiết.
+                </p>
+                <p class="note">
+                    <span class="highlight">Lưu ý:</span> Chức năng của quản lý sẽ bao gồm toàn bộ chức năng của lễ tân.
+                </p>
+            </article>
+
+            <article class="section" id="sec-employee">
+                <div class="section-header">
+                    <h2><span class="number">2.1</span>Quản lý nhân viên</h2>
+                    <small>Thêm, sửa, xoá và lọc danh sách nhân viên</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.1.1. Tìm kiếm &amp; lọc nhân viên
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhập mã nhân viên cần tìm hoặc chọn lọc theo loại nhân viên.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3211_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống hiển thị danh sách nhân viên phù hợp.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3211_b2_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3211_b2_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.1.2. Thêm nhân viên
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhấn <span class="highlight">“Thêm nhân viên”</span>.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3212_b1_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3212_b1_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhập thông tin nhân viên vào form.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3212_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Nhấn <span class="highlight">“Lưu”</span> để hoàn tất.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3212_b3_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3212_b3_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.1.3. Cập nhật &amp; xoá nhân viên
+                    </div>
+                    <ol class="steps">
+                        <li><b>Cập nhật:</b> Chọn nhân viên → nhấn <span class="highlight">“Cập nhật”</span>hoặc double-click → sửa thông tin → lưu.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3213_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3213_b2_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3213_b2_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3213_b4_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3213_b4_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+
+                        <li><b>Xoá:</b> Chọn nhân viên → nhấn <span class="highlight">“Xoá”</span> → xác nhận khi hệ thống hỏi.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3214_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3214_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3214_b3_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3214_b3_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <article class="section" id="sec-promotion">
+                <div class="section-header">
+                    <h2><span class="number">2.2</span>Quản lý khuyến mãi</h2>
+                    <small>Tìm kiếm, thêm mới, cập nhật và xoá chương trình</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.2.1. Tìm kiếm &amp; lọc khuyến mãi
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Tìm theo tên khuyến mãi hoặc lọc theo tình trạng (đang áp dụng, hết hạn…).</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3221_b1_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3221_b1_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Hệ thống hiển thị các khuyến mãi tương ứng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3221_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.2.2. Thêm &amp; cập nhật khuyến mãi
+                    </div>
+                    <ol class="steps">
+                        <li><b>Thêm:</b> Nhấn <span class="highlight">“Thêm khuyến mãi”</span> → nhập thông tin → lưu.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3222_b1_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3222_b1_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3222_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3222_b3_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3222_b3_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+
+                        <li><b>Cập nhật:</b> Chọn khuyến mãi → nhấn <span class="highlight">“Cập nhật”</span> → sửa → lưu.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3223_b1_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3223_b1_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3223_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3223_b3_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3223_b3_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.2.3. Xoá khuyến mãi
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Chọn khuyến mãi cần xoá.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3224_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhấn <span class="highlight">“Xoá khuyến mãi”</span> và xác nhận khi hệ thống hỏi.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3224_b2_1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3224_b2_2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <article class="section" id="sec-service-mgmt">
+                <div class="section-header">
+                    <h2><span class="number">2.3</span>Quản lý dịch vụ</h2>
+                    <small>Thêm / cập nhật / xoá và lọc các dịch vụ</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.3.1. Thêm dịch vụ mới
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Nhấn <span class="highlight">“Thêm mới”</span>.</li>
+                        <li><b>B2:</b> Chọn ảnh, nhập tên, loại dịch vụ, giá và số lượng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3231_b12345.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Kiểm tra kỹ, nhấn <span class="highlight">“Thêm dịch vụ”</span> hoặc <b>“Hủy”</b>.</li>
+                    </ol>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.3.2. Thêm số lượng / cập nhật / xoá dịch vụ
+                    </div>
+                    <ol class="steps">
+                        <li><b>Thêm số lượng:</b> bấm nút thêm trên dịch vụ → nhập số lượng → xác nhận.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3232_b123.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>Cập nhật:</b> bấm nút cập nhật → sửa tên/giá/ảnh → lưu.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3233_b12345.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>Lọc:</b> chọn loại dịch vụ muốn hiển thị.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3234_b12.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>Xoá:</b> bấm nút xoá → xác nhận Yes để xoá.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_3235_b12.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <article class="section" id="sec-income">
+                <div class="section-header">
+                    <h2><span class="number">2.4</span>Thống kê theo hoá đơn &amp; doanh thu</h2>
+                    <small>Theo dõi số lượng hoá đơn và tổng doanh thu theo ngày / tháng</small>
+                </div>
+
+                <div class="block">
+                    <div class="block-title">
+                        2.4.1. Thống kê theo hoá đơn và doanh thu tổng
+                    </div>
+                    <ol class="steps">
+                        <li><b>B1:</b> Chọn ngày cần thống kê.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_324_b1.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_324_b2.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B2:</b> Nhấn <span class="highlight">“Thống kê”</span> để xem chi tiết.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_324_b4.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                        <li><b>B3:</b> Có thể chuyển đổi giữa thống kê theo ngày và theo tháng.</li>
+                        <div style="margin-top:8px;text-align:center;">
+                            <img src="img/img_324_b3.png"
+                                 alt="Màn hình tìm kiếm / lọc phòng"
+                                 style="max-width:100%;border-radius:12px;border:1px solid rgba(148,163,184,0.4);box-shadow:0 10px 25px rgba(15,23,42,0.7);">
+                        </div>
+                    </ol>
+                </div>
+            </article>
+
+            <footer>
+                Hết tài liệu hướng dẫn. Nếu bạn là nhân viên mới, hãy đọc lần lượt từ mục 1 đến mục 2,
+                sau đó thực hành trên dữ liệu demo trước khi thao tác trên dữ liệu thật.
+            </footer>
+        </section>
+    </main>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const sections = Array.from(document.querySelectorAll(".section"));
+
+        // Thu gọn tất cả section trừ phần đầu tiên (VD: 1. Chức năng lễ tân)
+        sections.forEach((sec, index) => {
+            if (index > 0) {
+                sec.classList.add("collapsed");
+            }
+            const header = sec.querySelector(".section-header");
+            if (header) {
+                header.addEventListener("click", () => {
+                    sec.classList.toggle("collapsed");
+                });
+            }
+        });
+
+        // Khi click link trong sidebar -> tự mở section tương ứng
+        document.querySelectorAll(".toc a[href^='#']").forEach(link => {
+            link.addEventListener("click", function (e) {
+                const id = this.getAttribute("href").substring(1);
+                const target = document.getElementById(id);
+                if (target) {
+                    target.classList.remove("collapsed");
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
