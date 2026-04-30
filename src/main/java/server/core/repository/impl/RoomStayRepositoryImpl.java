@@ -15,8 +15,10 @@ import server.infrastructure.mapper.GenericDataMapper;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -590,24 +592,32 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
     }
 
     @Override
-    public Double calculateRoomFeeByRoomID(String roomID, String bookingType, LocalDateTime checkIn, LocalDateTime checkOut) {
+    public Double calculateRoomFeeByRoomID(String roomID, String bookingType,
+                                           LocalDateTime checkIn, LocalDateTime checkOut) {
         String query = """
-                MATCH (r:Room {roomId: $roomID})-[:HAS_TYPE]->(rt:RoomType)
-                RETURN rt
-                """;
-        Map<String, Object> params = Map.of("roomID", roomID);
+            MATCH (r:Room {roomId: $roomID})-[:HAS_TYPE]->(rt:RoomType)
+            RETURN rt
+            LIMIT 1
+            """;
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("roomID", roomID);
 
         try (Session session = connManager.openSession()) {
             return session.executeRead(tx -> {
                 Result result = tx.run(query, params);
 
-                List<RoomType> list = result.list()
-                        .stream()
-                        .map(record -> mapper.toObject(record.get("rt").asNode().asMap(), RoomType.class))
-                        .collect(Collectors.toList());
+                if (!result.hasNext()) {
+                    return 0.0;
+                }
 
-                if (list.isEmpty()) return null;
-                return calculateRoomFee(list.get(0), bookingType, checkIn, checkOut);
+                Record record = result.next();
+                RoomType roomType = mapper.toObject(
+                        record.get("rt").asNode().asMap(),
+                        RoomType.class
+                );
+
+                return calculateRoomFee(roomType, bookingType, checkIn, checkOut);
             });
         }
     }
@@ -879,55 +889,77 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
         return prefix + initials + String.format("%04d", seq);
     }
 
-    private double calculateRoomFee(RoomType roomType, String bookingType, LocalDateTime checkInDate, LocalDateTime checkOutDate) {
-
-        if (roomType == null || checkInDate == null || checkOutDate == null || !checkOutDate.isAfter(checkInDate)) {
+    private double calculateRoomFee(RoomType roomType, String bookingType, LocalDateTime checkIn, LocalDateTime checkOut) {
+        if (roomType == null || checkIn == null || checkOut == null || !checkOut.isAfter(checkIn)) {
             return 0;
         }
 
-        long durationHours = Duration.between(checkInDate, checkOutDate).toHours();
-        if (durationHours < 0) return 0;
+        String type = normalizeBookingType(bookingType);
 
-        if ("Giờ".equalsIgnoreCase(bookingType)) {
-            double base = roomType.getPricePerHour();
-            double increment = "Phòng đơn".equalsIgnoreCase(roomType.getTypeName()) ? 10000 : 20000;
-
-            if (durationHours <= 1) return base;
-            return base + (durationHours - 1) * increment;
-        }
-
-        if ("Ngày".equalsIgnoreCase(bookingType)) {
-            long days = (long) Math.ceil(Duration.between(checkInDate, checkOutDate).toHours() / 24.0);
-            days = Math.max(days, 1);
-            return days * roomType.getPricePerDay();
-        }
-
-        if ("Đêm".equalsIgnoreCase(bookingType)) {
-            long hours = Math.max(durationHours, 1);
-            if (hours <= 13) {
-                return roomType.getPricePerNight();
+        return switch (type) {
+            case "GIO" -> {
+                long minutes = Duration.between(checkIn, checkOut).toMinutes();
+                long hours = (long) Math.ceil(minutes / 60.0);
+                hours = Math.max(1, hours);
+                yield hours * roomType.getPricePerHour();
             }
 
-            long remaining = hours - 13;
-            long extraBlocks = remaining / 24;
-            long remainder = remaining % 24;
+            case "NGAY" -> {
+                long days = ChronoUnit.DAYS.between(checkIn.toLocalDate(), checkOut.toLocalDate());
 
-            long nights = 1 + extraBlocks;
-            double price = nights * roomType.getPricePerNight();
-
-            if (remainder > 0) {
-                long lateHours = Math.min(remainder, 11);
-                price += lateHours * roomType.getLateFeePerHour();
-
-                if (remainder > 11) {
-                    price += roomType.getPricePerNight();
+                if (days <= 0) {
+                    days = 1;
                 }
+
+                // Nếu có lẻ giờ sang ngày sau thì vẫn tính tròn ngày
+                LocalDateTime expectedCheckout = checkIn.plusDays(days);
+                if (checkOut.isAfter(expectedCheckout)) {
+                    days++;
+                }
+
+                yield days * roomType.getPricePerDay();
             }
 
-            return price;
+            case "DEM" -> {
+                long nights = ChronoUnit.DAYS.between(checkIn.toLocalDate(), checkOut.toLocalDate());
+
+                if (nights <= 0) {
+                    nights = 1;
+                }
+
+                yield nights * roomType.getPricePerNight();
+            }
+
+            default -> 0;
+        };
+    }
+
+    private String normalizeBookingType(String bookingType) {
+        if (bookingType == null) {
+            return "";
         }
 
-        return 0;
+        String value = bookingType.trim();
+
+        if (value.equalsIgnoreCase("Giờ") || value.equalsIgnoreCase("GIO") || value.equalsIgnoreCase("GIỜ")) {
+            return "GIO";
+        }
+
+        if (value.equalsIgnoreCase("Ngày") || value.equalsIgnoreCase("NGAY") || value.equalsIgnoreCase("NGÀY")) {
+            return "NGAY";
+        }
+
+        if (value.equalsIgnoreCase("Đêm") || value.equalsIgnoreCase("Dem") || value.equalsIgnoreCase("DEM") || value.equalsIgnoreCase("ĐÊM")) {
+            return "DEM";
+        }
+
+        String upper = value.toUpperCase(Locale.ROOT);
+        return switch (upper) {
+            case "GIO", "GIỜ" -> "GIO";
+            case "NGAY", "NGÀY" -> "NGAY";
+            case "DEM", "ĐÊM" -> "DEM";
+            default -> upper;
+        };
     }
 
     private OrderDetailRoom mapOrderDetailRoom(Record record) {
