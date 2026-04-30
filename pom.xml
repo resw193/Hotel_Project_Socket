@@ -31,10 +31,17 @@
             <artifactId>flatlaf-extras</artifactId>
             <version>3.2.1</version>
         </dependency>
+
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf-fonts-roboto</artifactId>
             <version>2.137</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.toedter</groupId>
+            <artifactId>jcalendar</artifactId>
+            <version>1.4</version>
         </dependency>
 
         <!-- MigLayout -->
@@ -45,11 +52,27 @@
         </dependency>
 
         <!-- Mail (Jakarta) -->
+        <!-- JavaMail bản javax -->
         <dependency>
             <groupId>com.sun.mail</groupId>
-            <artifactId>jakarta.mail</artifactId>
-            <version>2.0.1</version>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
         </dependency>
+
+        <!-- Activation bản javax -->
+        <dependency>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>javax.activation</artifactId>
+            <version>1.2.0</version>
+        </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>com.sun.mail</groupId>-->
+<!--            <artifactId>jakarta.mail</artifactId>-->
+<!--            <version>2.0.1</version>-->
+<!--        </dependency>-->
+
+
 
         <!-- ZXing -->
         <dependency>

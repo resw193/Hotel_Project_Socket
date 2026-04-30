@@ -92,8 +92,8 @@ public class RequestDispatcher {
 
                 // Login
                 case LOGIN -> handleLogin(request);
-                case FORGOT_PASSWORD -> BaseResponse.error("Chưa cài đặt chức năng FORGOT_PASSWORD.");
-                case CHANGE_PASSWORD -> BaseResponse.error("Chưa cài đặt chức năng CHANGE_PASSWORD.");
+                case FORGOT_PASSWORD -> handleForgotPassword(request);
+                case CHANGE_PASSWORD -> handleChangePassword(request);
 
                 // Quản lý phòng
                 case GET_ALL_ROOMS -> handleGetAllRooms();
@@ -1056,6 +1056,98 @@ public class RequestDispatcher {
                 ? BaseResponse.success(null, "Lưu cảnh báo dashboard thành công.")
                 : BaseResponse.error("Không thể lưu cảnh báo dashboard.");
     }
+
+    private BaseResponse handleForgotPassword(BaseRequest request) {
+        Object data = request.getData();
+
+        // Bước 1: gửi OTP
+        if (data instanceof ForgotPasswordRequestDTO dto) {
+            String username = dto.getUsername() == null ? "" : dto.getUsername().trim();
+
+            if (username.isEmpty()) {
+                return BaseResponse.error("Tên đăng nhập không được rỗng.");
+            }
+
+            try {
+                String email = accountService.sendOtpForReset(username);
+                return BaseResponse.success(
+                        email,
+                        "Đã gửi mã OTP đến email: " + maskEmail(email)
+                );
+            } catch (Exception e) {
+                return BaseResponse.error(e.getMessage());
+            }
+        }
+
+        // Bước 2: xác nhận OTP và đặt lại mật khẩu
+        if (data instanceof ResetPasswordRequestDTO dto) {
+            String username = dto.getUsername() == null ? "" : dto.getUsername().trim();
+            String otp = dto.getOtp() == null ? "" : dto.getOtp().trim();
+
+            if (username.isEmpty()) {
+                return BaseResponse.error("Tên đăng nhập không được rỗng.");
+            }
+
+            if (otp.isEmpty()) {
+                return BaseResponse.error("OTP không được rỗng.");
+            }
+
+            boolean ok = accountService.resetPasswordWithOtp(
+                    username,
+                    otp,
+                    dto.getNewPassword(),
+                    dto.getConfirmPassword()
+            );
+
+            return ok
+                    ? BaseResponse.success(null, "Đặt lại mật khẩu thành công.")
+                    : BaseResponse.error("Không thể đặt lại mật khẩu.");
+        }
+
+        return BaseResponse.error("Dữ liệu FORGOT_PASSWORD không hợp lệ.");
+    }
+
+    private BaseResponse handleChangePassword(BaseRequest request) {
+        Object data = request.getData();
+
+        if (!(data instanceof ChangePasswordRequestDTO dto)) {
+            return BaseResponse.error("Dữ liệu CHANGE_PASSWORD không hợp lệ.");
+        }
+
+        String employeeId = dto.getEmployeeId() == null ? "" : dto.getEmployeeId().trim();
+
+        if (employeeId.isEmpty()) {
+            return BaseResponse.error("Mã nhân viên không được rỗng.");
+        }
+
+        boolean ok = accountService.changePasswordByEmployeeID(
+                employeeId,
+                dto.getNewPassword(),
+                dto.getConfirmPassword()
+        );
+
+        return ok
+                ? BaseResponse.success(null, "Đổi mật khẩu thành công.")
+                : BaseResponse.error("Không thể đổi mật khẩu.");
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || email.isBlank() || !email.contains("@")) {
+            return "";
+        }
+
+        String[] parts = email.split("@", 2);
+        String name = parts[0];
+        String domain = parts[1];
+
+        if (name.length() <= 2) {
+            return name.charAt(0) + "***@" + domain;
+        }
+
+        return name.substring(0, 2) + "***@" + domain;
+    }
+
+
 
 
     private String normalize(String s) {
