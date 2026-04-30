@@ -35,6 +35,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.time.LocalDate;
 
 public class FormRoomBookingManagement extends JPanel {
 
@@ -44,6 +45,10 @@ public class FormRoomBookingManagement extends JPanel {
     private final Color HOVER = new Color(0xFFD36E);
     private final Color CARD_BG = new Color(0x102D4A);
     private final Color BORDER = new Color(0x274A6B);
+    private final Color DUE_BG = new Color(0xDC2626);
+    private final Color DUE_FG = Color.WHITE;
+    private final Color SOON_BG = new Color(0xF59E0B);
+    private final Color SOON_FG = new Color(0x0B1F33);
 
     private final SessionContext session;
     private final RoomService roomService;
@@ -337,6 +342,7 @@ public class FormRoomBookingManagement extends JPanel {
             String selectedView = String.valueOf(cbxView.getSelectedItem());
 
             List<RoomDTO> filtered = new ArrayList<>();
+            Map<String, OdrInfoDTO> activeMap = new HashMap<>();
 
             for (RoomDTO r : rooms) {
                 boolean matchKeyword = keyword.isEmpty()
@@ -354,6 +360,7 @@ public class FormRoomBookingManagement extends JPanel {
 
                 boolean hasPendingBooking = false;
                 boolean hasActiveCheckIn = false;
+                OdrInfoDTO activeCheckIn = null;
 
                 try {
                     BaseResponse pendingRes = sendRequest(
@@ -370,8 +377,10 @@ public class FormRoomBookingManagement extends JPanel {
                             CommandType.GET_ACTIVE_CHECKIN_INFO,
                             new RoomIdRequestDTO(r.getRoomId())
                     );
-                    if (activeRes.isSuccess()) {
-                        hasActiveCheckIn = activeRes.getData() != null;
+                    if (activeRes.isSuccess() && activeRes.getData() != null) {
+                        activeCheckIn = (OdrInfoDTO) activeRes.getData();
+                        hasActiveCheckIn = true;
+                        activeMap.put(r.getRoomId(), activeCheckIn);
                     }
 
                 } catch (Exception ex) {
@@ -390,11 +399,65 @@ public class FormRoomBookingManagement extends JPanel {
                 }
             }
 
+            if ("Check-in".equalsIgnoreCase(currentStatusFilter)) {
+                LocalDateTime now = LocalDateTime.now();
+
+                filtered.sort(
+                        Comparator
+                                .comparingInt((RoomDTO r) -> {
+                                    OdrInfoDTO odr = activeMap.get(r.getRoomId());
+
+                                    if (isCheckoutDue(odr, now)) {
+                                        return 0; // Đã tới hạn
+                                    }
+
+                                    if (isCheckoutSoon(odr, now)) {
+                                        return 1; // Sắp tới hạn
+                                    }
+
+                                    return 2; // Bình thường
+                                })
+                                .thenComparing(r -> {
+                                    OdrInfoDTO odr = activeMap.get(r.getRoomId());
+                                    return odr == null || odr.getCheckOut() == null
+                                            ? LocalDateTime.MAX
+                                            : odr.getCheckOut();
+                                })
+                                .thenComparing(RoomDTO::getRoomId, Comparator.nullsLast(String::compareToIgnoreCase))
+                );
+            }
+
             buildCards(filtered);
 
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private boolean isCheckoutDue(OdrInfoDTO odr) {
+        return isCheckoutDue(odr, LocalDateTime.now());
+    }
+
+    private boolean isCheckoutDue(OdrInfoDTO odr, LocalDateTime now) {
+        if (odr == null || odr.getCheckOut() == null || now == null) {
+            return false;
+        }
+
+        LocalDate today = now.toLocalDate();
+        LocalDate checkoutDate = odr.getCheckOut().toLocalDate();
+
+        return !checkoutDate.isAfter(today);
+    }
+
+    private boolean isCheckoutSoon(OdrInfoDTO odr, LocalDateTime now) {
+        if (odr == null || odr.getCheckOut() == null || now == null) {
+            return false;
+        }
+
+        LocalDate today = now.toLocalDate();
+        LocalDate checkoutDate = odr.getCheckOut().toLocalDate();
+
+        return checkoutDate.isEqual(today.plusDays(1));
     }
 
     private void updateMultiButtonEnabled() {
@@ -503,7 +566,18 @@ public class FormRoomBookingManagement extends JPanel {
 
         if (activeCheckIn != null) {
             info.add(subtleDivider(), "gaptop 6");
-            info.add(infoSubHeader("Khách hàng đang ở"));
+
+            JPanel checkInHeader = new JPanel(new MigLayout("insets 0, fillx", "[grow][]", "[]"));
+            checkInHeader.setOpaque(false);
+
+            checkInHeader.add(infoSubHeader("Khách hàng đang ở"), "growx");
+
+            JLabel checkoutBadge = buildCheckoutBadge(activeCheckIn);
+            if (checkoutBadge != null) {
+                checkInHeader.add(checkoutBadge, "right");
+            }
+
+            info.add(checkInHeader, "growx");
             info.add(buildBookingInfoPanel(activeCheckIn, false), "growx");
         }
 
@@ -979,6 +1053,37 @@ public class FormRoomBookingManagement extends JPanel {
         calendarDialog = new FormCalendarBooking(owner, roomService, roomStayService);
         calendarDialog.setLocationRelativeTo(this);
         calendarDialog.setVisible(true);
+    }
+
+    private JLabel buildCheckoutBadge(OdrInfoDTO odr) {
+        LocalDateTime now = LocalDateTime.now();
+
+        String text;
+        Color bg;
+        Color fg;
+
+        if (isCheckoutDue(odr, now)) {
+            text = "Đã tới hạn";
+            bg = DUE_BG;
+            fg = DUE_FG;
+        }
+        else if (isCheckoutSoon(odr, now)) {
+            text = "Sắp tới hạn";
+            bg = SOON_BG;
+            fg = SOON_FG;
+        }
+        else {
+            return null;
+        }
+
+        JLabel badge = new JLabel(text, SwingConstants.CENTER);
+        badge.setOpaque(true);
+        badge.setBackground(bg);
+        badge.setForeground(fg);
+        badge.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        badge.setBorder(BorderFactory.createEmptyBorder(4, 10, 4, 10));
+
+        return badge;
     }
 
     private void styleCombo(JComboBox<?> c) {
