@@ -135,13 +135,32 @@ public class CustomerServiceImpl implements CustomerService {
             throw new IllegalArgumentException("customerID không hợp lệ.");
         }
 
-        customerDTO.setCustomerId(customerID);
-        customerDTO.setFullName(checkName(customerDTO.getFullName()));
-        customerDTO.setPhone(checkPhone(customerDTO.getPhone()));
-        customerDTO.setEmail(checkEmail(customerDTO.getEmail()));
+        Customer current = customerRepository.findById(customerID);
+        if (current == null) {
+            throw new IllegalArgumentException("Không tìm thấy khách hàng cần cập nhật.");
+        }
 
-        Customer customer = mapper.toObject(mapper.toMap(customerDTO), Customer.class);
-        return customerRepository.update(customer);
+        String fullName = checkName(customerDTO.getFullName());
+        String phone = checkPhone(customerDTO.getPhone());
+        String email = checkEmail(customerDTO.getEmail());
+
+        Customer existedPhone = customerRepository.findByPhone(phone);
+        if (existedPhone != null && !customerID.equals(existedPhone.getCustomerId())) {
+            throw new IllegalArgumentException("Số điện thoại đã tồn tại.");
+        }
+
+        if (!email.isEmpty()) {
+            Customer existedEmail = customerRepository.findByEmail(email);
+            if (existedEmail != null && !customerID.equals(existedEmail.getCustomerId())) {
+                throw new IllegalArgumentException("Email đã tồn tại.");
+            }
+        }
+
+        current.setFullName(fullName);
+        current.setPhone(phone);
+        current.setEmail(email);
+
+        return customerRepository.update(current);
     }
 
     private String check(String s) {
