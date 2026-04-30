@@ -1122,6 +1122,7 @@ public class RequestDispatcher {
 
         boolean ok = accountService.changePasswordByEmployeeID(
                 employeeId,
+                dto.getOldPassword(),
                 dto.getNewPassword(),
                 dto.getConfirmPassword()
         );

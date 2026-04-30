@@ -91,14 +91,29 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public boolean changePasswordByEmployeeID(String employeeID, String newPassword, String confirmPassword) {
+    public boolean changePasswordByEmployeeID(String employeeID, String oldPassword, String newPassword, String confirmPassword) {
         if (isBlank(employeeID)) {
             throw new IllegalArgumentException("Thiếu mã nhân viên.");
         }
 
+        oldPassword = check(oldPassword);
+        if (oldPassword.isEmpty()) {
+            throw new IllegalArgumentException("Mật khẩu cũ không được rỗng.");
+        }
+
+        boolean oldPasswordOk = accountRepository.existsByEmployeeIdAndPassword(employeeID.trim(), oldPassword);
+        if (!oldPasswordOk) {
+            throw new IllegalArgumentException("Mật khẩu cũ không đúng.");
+        }
+
         validatePassword(newPassword);
+
         if (!newPassword.equals(confirmPassword)) {
             throw new IllegalArgumentException("Xác nhận mật khẩu không khớp.");
+        }
+
+        if (oldPassword.equals(newPassword)) {
+            throw new IllegalArgumentException("Mật khẩu mới không được trùng mật khẩu cũ.");
         }
 
         return accountRepository.updatePasswordByEmployeeId(employeeID.trim(), newPassword);

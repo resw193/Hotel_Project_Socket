@@ -8,14 +8,16 @@ public class ChangePasswordRequestDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String employeeId;
+    private String oldPassword;
     private String newPassword;
     private String confirmPassword;
 
     public ChangePasswordRequestDTO() {
     }
 
-    public ChangePasswordRequestDTO(String employeeId, String newPassword, String confirmPassword) {
+    public ChangePasswordRequestDTO(String employeeId, String oldPassword, String newPassword, String confirmPassword) {
         this.employeeId = employeeId;
+        this.oldPassword = oldPassword;
         this.newPassword = newPassword;
         this.confirmPassword = confirmPassword;
     }
@@ -26,6 +28,14 @@ public class ChangePasswordRequestDTO implements Serializable {
 
     public void setEmployeeId(String employeeId) {
         this.employeeId = employeeId;
+    }
+
+    public String getOldPassword() {
+        return oldPassword;
+    }
+
+    public void setOldPassword(String oldPassword) {
+        this.oldPassword = oldPassword;
     }
 
     public String getNewPassword() {

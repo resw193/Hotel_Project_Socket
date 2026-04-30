@@ -5,6 +5,8 @@ import common.entity.Account;
 public interface AccountRepository {
     boolean existsByUsernameAndPassword(String username, String password);
 
+    boolean existsByEmployeeIdAndPassword(String employeeId, String password);
+
     Account findByUsername(String username);
 
     boolean updatePasswordByUsername(String username, String newPassword);

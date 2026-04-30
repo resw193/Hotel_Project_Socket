@@ -114,4 +114,25 @@ public class AccountRepositoryImpl implements AccountRepository {
             });
         }
     }
+
+    @Override
+    public boolean existsByEmployeeIdAndPassword(String employeeId, String password) {
+        String query = """
+            MATCH (e:Employee)-[:HAS_ACCOUNT]->(a:Account)
+            WHERE e.employeeId = $employeeId AND a.password = $password
+            RETURN a
+            """;
+
+        Map<String, Object> params = Map.of(
+                "employeeId", employeeId,
+                "password", password
+        );
+
+        try (Session session = connManager.openSession()) {
+            return session.executeRead(tx -> {
+                Result result = tx.run(query, params);
+                return result.hasNext();
+            });
+        }
+    }
 }

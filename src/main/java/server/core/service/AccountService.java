@@ -11,5 +11,5 @@ public interface AccountService {
 
     boolean resetPasswordWithOtp(String username, String otp, String newPassword, String confirmPassword);
 
-    boolean changePasswordByEmployeeID(String employeeID, String newPassword, String confirmPassword);
+    boolean changePasswordByEmployeeID(String employeeID, String oldPassword, String newPassword, String confirmPassword);
 }
