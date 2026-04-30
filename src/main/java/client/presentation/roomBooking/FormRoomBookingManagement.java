@@ -30,6 +30,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.net.URL;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.*;
@@ -601,39 +602,8 @@ public class FormRoomBookingManagement extends JPanel {
         });
 
         miCheckIn.addActionListener(e -> {
-            try {
-                BaseResponse response = sendRequest(
-                        CommandType.GET_PENDING_BOOKINGS_OF_ROOM,
-                        new RoomIdRequestDTO(room.getRoomId())
-                );
-
-                if (!response.isSuccess()) {
-                    JOptionPane.showMessageDialog(this, response.getMessage());
-                    return;
-                }
-
-                @SuppressWarnings("unchecked")
-                List<OdrInfoDTO> list = (List<OdrInfoDTO>) response.getData();
-
-                if (list == null || list.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Phòng này không còn booking chờ.");
-                    return;
-                }
-
-                if (list.size() == 1) {
-                    BaseResponse checkInRes = sendRequest(
-                            CommandType.CHECK_IN_BY_ODR_ID,
-                            new OdrIdRequestDTO(list.get(0).getOrderDetailRoomId())
-                    );
-                    JOptionPane.showMessageDialog(this,
-                            checkInRes.isSuccess() ? "Check-in thành công." : checkInRes.getMessage());
-                    loadData();
-                } else {
-                    openBookingListDialog(room, list);
-                }
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
+            List<String> targets = resolveTargetRooms(room.getRoomId());
+            doCheckInRooms(targets);
         });
 
         miCheckOut.addActionListener(e -> {
@@ -831,6 +801,126 @@ public class FormRoomBookingManagement extends JPanel {
         sep.setForeground(BORDER);
         sep.setBackground(BORDER);
         return sep;
+    }
+
+    private void doCheckInRooms(List<String> roomIds) {
+        if (roomIds == null || roomIds.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn ít nhất 1 phòng để check-in.");
+            return;
+        }
+
+        if (!"Đặt".equalsIgnoreCase(currentStatusFilter)) {
+            JOptionPane.showMessageDialog(this, "Check-in chỉ áp dụng cho phòng đang ở trạng thái Đặt.");
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(
+                this,
+                roomIds.size() == 1
+                        ? "Bạn có chắc muốn check-in phòng " + roomIds.get(0) + " không?"
+                        : "Bạn có chắc muốn check-in " + roomIds.size() + " phòng đã chọn không?",
+                "Xác nhận check-in",
+                JOptionPane.YES_NO_OPTION
+        );
+
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        int successCount = 0;
+        List<String> failedRooms = new ArrayList<>();
+
+        for (String roomId : roomIds) {
+            try {
+                OdrInfoDTO targetBooking = findCheckInTargetBooking(roomId);
+
+                if (targetBooking == null) {
+                    failedRooms.add(roomId + " - không có booking chờ phù hợp");
+                    continue;
+                }
+
+                String odrId = targetBooking.getOrderDetailRoomId();
+                if (odrId == null || odrId.trim().isEmpty()) {
+                    failedRooms.add(roomId + " - thiếu mã chi tiết đặt phòng");
+                    continue;
+                }
+
+                BaseResponse response = sendRequest(
+                        CommandType.CHECK_IN_BY_ODR_ID,
+                        new OdrIdRequestDTO(odrId)
+                );
+
+                if (response.isSuccess()) {
+                    successCount++;
+                } else {
+                    failedRooms.add(roomId + " - " + response.getMessage());
+                }
+
+            } catch (Exception ex) {
+                failedRooms.add(roomId + " - " + ex.getMessage());
+            }
+        }
+
+        selectedRoomIDs.clear();
+        loadData();
+        updateMultiButtonEnabled();
+
+        if (failedRooms.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Check-in thành công " + successCount + "/" + roomIds.size() + " phòng."
+            );
+        } else {
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Check-in thành công " + successCount + "/" + roomIds.size() + " phòng.\n\n" +
+                            "Các phòng thất bại:\n" + String.join("\n", failedRooms),
+                    "Kết quả check-in",
+                    JOptionPane.WARNING_MESSAGE
+            );
+        }
+    }
+
+    private OdrInfoDTO findCheckInTargetBooking(String roomId) {
+        BaseResponse response = sendRequest(
+                CommandType.GET_PENDING_BOOKINGS_OF_ROOM,
+                new RoomIdRequestDTO(roomId)
+        );
+
+        if (!response.isSuccess()) {
+            return null;
+        }
+
+        @SuppressWarnings("unchecked")
+        List<OdrInfoDTO> list = (List<OdrInfoDTO>) response.getData();
+
+        if (list == null || list.isEmpty()) {
+            return null;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        List<OdrInfoDTO> dueBookings = list.stream()
+                .filter(Objects::nonNull)
+                .filter(odr -> odr.getCheckIn() == null || !odr.getCheckIn().isAfter(now))
+                .filter(odr -> odr.getCheckOut() == null || odr.getCheckOut().isAfter(now))
+                .sorted(Comparator.comparing(
+                        OdrInfoDTO::getCheckIn,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .toList();
+
+        if (!dueBookings.isEmpty()) {
+            return dueBookings.get(0);
+        }
+
+        return list.stream()
+                .filter(Objects::nonNull)
+                .min(Comparator.comparing(
+                        OdrInfoDTO::getCheckIn,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                ))
+                .orElse(null);
     }
 
     private void doCheckOutRooms(List<String> targets) {
