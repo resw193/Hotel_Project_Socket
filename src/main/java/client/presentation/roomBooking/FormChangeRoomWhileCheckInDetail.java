@@ -180,11 +180,12 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
 
             if (response.isSuccess()) {
                 JOptionPane.showMessageDialog(this,
-                        "Đổi phòng thành công!\n"
-                                + "• Phòng cũ: " + oldRoomID + "\n"
+                        "Lên lịch đổi phòng thành công!\n"
+                                + "• Phòng cũ vẫn Check-in đến: " + changeTimeSelected.format(formatter) + "\n"
+                                + "• Phòng mới được đặt từ: " + changeTimeSelected.format(formatter) + "\n"
                                 + "• Phòng mới: " + newRoom.getRoomId() + "\n"
-                                + "• Thời điểm chuyển: " + changeTimeSelected.format(formatter) + "\n"
-                                + "• Check-out không đổi: " + checkOutOld.format(formatter));
+                                + "• Check-out cuối: " + checkOutOld.format(formatter) + "\n\n"
+                                + "Đến thời điểm chuyển, hãy check-out phòng cũ và check-in phòng mới.");
                 dispose();
                 parent.closeAfterSuccess();
             } else {

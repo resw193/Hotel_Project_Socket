@@ -480,40 +480,64 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
         try (Session session = connManager.openSession()) {
             return session.executeWrite(tx -> {
                 OrderDetailRoom active = getActiveCheckInTx(tx, oldRoomID);
+
                 if (active == null || active.getCheckInDate() == null || active.getCheckOutDate() == null) {
                     return false;
                 }
 
-                if (!changeTime.isAfter(active.getCheckInDate()) || !changeTime.isBefore(active.getCheckOutDate())) {
-                    return false;
-                }
+                LocalDateTime oldCheckIn = active.getCheckInDate();
+                LocalDateTime oldCheckOut = active.getCheckOutDate();
 
-                if (!isRoomAvailable(tx, newRoomID)) {
+                if (!changeTime.isAfter(oldCheckIn) || !changeTime.isBefore(oldCheckOut)) {
                     return false;
                 }
 
                 RoomType oldRoomType = getRoomTypeByRoomId(tx, oldRoomID);
                 RoomType newRoomType = getRoomTypeByRoomId(tx, newRoomID);
+
                 if (oldRoomType == null || newRoomType == null) {
                     return false;
                 }
 
-                String bookingType = active.getBookingType() == null ? null : active.getBookingType().toString();
+                String overlapQuery = """
+                    MATCH (newRoom:Room {roomId: $newRoomID})
+                    OPTIONAL MATCH (newRoom)<-[:FOR_ROOM]-(odr:OrderDetailRoom)
+                    WHERE odr.status IN ['Đặt', 'Check-in']
+                      AND odr.checkInDate < $newCheckOut
+                      AND odr.checkOutDate > $newCheckIn
+                    RETURN count(odr) AS overlapCount
+                    """;
 
-                double oldFee = calculateRoomFee(oldRoomType, bookingType, active.getCheckInDate(), changeTime);
-                double newFee = calculateRoomFee(newRoomType, bookingType, changeTime, active.getCheckOutDate());
+                Map<String, Object> overlapParams = new HashMap<>();
+                overlapParams.put("newRoomID", newRoomID);
+                overlapParams.put("newCheckIn", changeTime);
+                overlapParams.put("newCheckOut", oldCheckOut);
 
+                Result overlapResult = tx.run(overlapQuery, overlapParams);
+                int overlapCount = overlapResult.single().get("overlapCount").asInt();
+
+                if (overlapCount > 0) {
+                    return false;
+                }
+
+                String bookingType = active.getBookingType() == null
+                        ? null
+                        : active.getBookingType().getDisplayName();
+
+                double oldFee = calculateRoomFee(oldRoomType, bookingType, oldCheckIn, changeTime);
+                double newFee = calculateRoomFee(newRoomType, bookingType, changeTime, oldCheckOut);
                 String newOdrId = "ODR" + String.format("%06d", nextValue(tx, "ODR_SEQ"));
 
                 String query = """
                     MATCH (oldRoom:Room {roomId: $oldRoomID})
                     MATCH (newRoom:Room {roomId: $newRoomID})
-                    MATCH (o:Order {orderId: $orderId})
-                    MATCH (oldOdr:OrderDetailRoom {orderDetailRoomId: $oldOdrId})
+                    MATCH (oldOdr:OrderDetailRoom {orderDetailRoomId: $oldOdrId})<-[:HAS_ROOM_DETAIL]-(o:Order)
+
                     SET oldOdr.checkOutDate = $changeTime,
                         oldOdr.roomFee = $oldFee,
-                        oldOdr.status = 'Hoàn tất',
-                        oldRoom.isAvailable = true
+                        oldOdr.status = 'Check-in',
+                        oldRoom.isAvailable = false
+
                     CREATE (newOdr:OrderDetailRoom {
                         orderDetailRoomId: $newOdrId,
                         roomFee: $newFee,
@@ -521,27 +545,31 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
                         checkInDate: $changeTime,
                         checkOutDate: $oldCheckOut,
                         bookingType: oldOdr.bookingType,
-                        status: 'Check-in'
+                        status: 'Đặt'
                     })
+
                     MERGE (o)-[:HAS_ROOM_DETAIL]->(newOdr)
                     MERGE (newOdr)-[:FOR_ROOM]->(newRoom)
+
                     SET newRoom.isAvailable = false
+
                     RETURN newOdr
                     """;
 
                 Map<String, Object> params = new HashMap<>();
                 params.put("oldRoomID", oldRoomID);
                 params.put("newRoomID", newRoomID);
-                params.put("orderId", active.getOrder().getOrderId());
                 params.put("oldOdrId", active.getOrderDetailRoomId());
                 params.put("changeTime", changeTime);
                 params.put("oldFee", oldFee);
                 params.put("newOdrId", newOdrId);
                 params.put("newFee", newFee);
-                params.put("oldCheckOut", active.getCheckOutDate());
+                params.put("oldCheckOut", oldCheckOut);
 
                 Result result = tx.run(query, params);
-                return result.consume().counters().nodesCreated() > 0;
+                SummaryCounters counters = result.consume().counters();
+
+                return counters.nodesCreated() > 0 || counters.propertiesSet() > 0 || counters.relationshipsCreated() > 0;
             });
         }
     }
