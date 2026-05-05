@@ -49,6 +49,7 @@ public class FormExtendRoom extends JDialog {
 
     private List<OdrInfoDTO> bookings = new ArrayList<>();
 
+    private JButton btnExtend;
     private JTextField txtRoomID;
     private JComboBox<OdrInfoDTO> cboBookings;
     private JTextField txtNewCheckOutDate;
@@ -395,7 +396,7 @@ public class FormExtendRoom extends JDialog {
         leftNote.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         JButton btnClose = createSecondaryButton("ĐÓNG");
-        JButton btnExtend = createPrimaryButton("XÁC NHẬN GIA HẠN");
+        btnExtend = createPrimaryButton("XÁC NHẬN GIA HẠN");
 
         btnClose.addActionListener(e -> dispose());
         btnExtend.addActionListener(e -> extendRoom());
@@ -514,6 +515,7 @@ public class FormExtendRoom extends JDialog {
             lblPreviewExtendBy.setText("-");
             setStatusBadge("Chưa hợp lệ", RED, Color.WHITE);
             txtPreviewNote.setText("Chưa chọn booking.");
+            setExtendButtonEnabled(false);
             return;
         }
 
@@ -527,6 +529,7 @@ public class FormExtendRoom extends JDialog {
             lblPreviewExtendBy.setText("-");
             setStatusBadge("Thiếu thời gian mới", ORANGE, Color.BLACK);
             txtPreviewNote.setText("Hãy chọn ngày và giờ check-out mới để xem trước.");
+            setExtendButtonEnabled(false);
             return;
         }
 
@@ -541,7 +544,10 @@ public class FormExtendRoom extends JDialog {
         boolean valid = true;
         StringBuilder note = new StringBuilder();
 
-        if (odr.getCheckIn() != null && !newOut.isAfter(odr.getCheckIn())) {
+        if (odr.getCheckIn() == null) {
+            valid = false;
+            note.append("- Booking đang chọn thiếu thời gian check-in.\n");
+        } else if (!newOut.isAfter(odr.getCheckIn())) {
             valid = false;
             note.append("- Check-out mới phải sau check-in.\n");
         }
@@ -551,15 +557,28 @@ public class FormExtendRoom extends JDialog {
             note.append("- Check-out mới phải sau check-out hiện tại.\n");
         }
 
+        OdrInfoDTO conflict = findExtendConflict(odr, newOut);
+        if (conflict != null) {
+            valid = false;
+            note.append("- Không thể gia hạn vì thời gian mới bị trùng với booking khác của phòng ")
+                    .append(roomID)
+                    .append(".\n");
+            note.append("- Booking bị trùng: ")
+                    .append(formatConflictBooking(conflict))
+                    .append("\n");
+        }
+
         if (valid) {
             setStatusBadge("Sẵn sàng gia hạn", GREEN, new Color(0x062214));
             note.append("Booking đã chọn có thể được gia hạn.\n");
             note.append("Khách hàng: ").append(valueOrDash(odr.getFullName())).append("\n");
             note.append("Gia hạn thêm: ").append(lblPreviewExtendBy.getText()).append("\n");
             note.append("Hệ thống sẽ chỉ cập nhật booking đang chọn.");
+            setExtendButtonEnabled(true);
         } else {
-            setStatusBadge("Chưa hợp lệ", RED, Color.WHITE);
+            setStatusBadge("Không thể gia hạn", RED, Color.WHITE);
             note.append("Vui lòng chỉnh lại thời gian trước khi xác nhận.");
+            setExtendButtonEnabled(false);
         }
 
         txtPreviewNote.setText(note.toString());
@@ -593,11 +612,25 @@ public class FormExtendRoom extends JDialog {
                 return;
             }
 
+            OdrInfoDTO conflict = findExtendConflict(selected, newCheckOut);
+            if (conflict != null) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Không thể gia hạn vì thời gian mới bị trùng với booking khác của phòng "
+                                + roomID
+                                + ":\n"
+                                + formatConflictBooking(conflict),
+                        "Trùng lịch gia hạn",
+                        JOptionPane.WARNING_MESSAGE
+                );
+                updatePreview();
+                return;
+            }
+
             BaseResponse response = sendRequest(
                     CommandType.EXTEND_ROOM,
                     new ExtendRoomRequestDTO(roomID, selected.getOrderDetailRoomId(), newCheckOut)
             );
-
             if (response.isSuccess()) {
                 JOptionPane.showMessageDialog(this,
                         "Gia hạn phòng thành công.",
@@ -687,6 +720,66 @@ public class FormExtendRoom extends JDialog {
 
         String rs = sb.toString().trim();
         return rs.isEmpty() ? "0 phút" : rs;
+    }
+
+    private OdrInfoDTO findExtendConflict(OdrInfoDTO selected, LocalDateTime newOut) {
+        if (selected == null || newOut == null || selected.getCheckIn() == null) {
+            return null;
+        }
+
+        String selectedOdrId = selected.getOrderDetailRoomId() == null
+                ? ""
+                : selected.getOrderDetailRoomId().trim();
+
+        LocalDateTime newIn = selected.getCheckIn();
+
+        for (OdrInfoDTO other : bookings) {
+            if (other == null) continue;
+
+            String otherOdrId = other.getOrderDetailRoomId() == null
+                    ? ""
+                    : other.getOrderDetailRoomId().trim();
+
+            // Bỏ qua chính booking đang gia hạn
+            if (!selectedOdrId.isEmpty() && selectedOdrId.equalsIgnoreCase(otherOdrId)) {
+                continue;
+            }
+
+            if (other.getCheckIn() == null || other.getCheckOut() == null) {
+                continue;
+            }
+
+            // Công thức giao lịch: A.start < B.end && A.end > B.start
+            boolean overlap = newIn.isBefore(other.getCheckOut())
+                    && newOut.isAfter(other.getCheckIn());
+
+            if (overlap) {
+                return other;
+            }
+        }
+
+        return null;
+    }
+
+    private String formatConflictBooking(OdrInfoDTO conflict) {
+        if (conflict == null) return "";
+
+        return valueOrDash(conflict.getFullName())
+                + " | "
+                + valueOrDash(conflict.getPhone())
+                + " | "
+                + formatDateTime(conflict.getCheckIn())
+                + " → "
+                + formatDateTime(conflict.getCheckOut())
+                + " | "
+                + valueOrDash(conflict.getOrderDetailRoomId());
+    }
+
+    private void setExtendButtonEnabled(boolean enabled) {
+        if (btnExtend != null) {
+            btnExtend.setEnabled(enabled);
+            btnExtend.setCursor(new Cursor(enabled ? Cursor.HAND_CURSOR : Cursor.DEFAULT_CURSOR));
+        }
     }
 
     private JPanel createCard() {

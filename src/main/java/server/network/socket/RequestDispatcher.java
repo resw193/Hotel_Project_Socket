@@ -494,6 +494,10 @@ public class RequestDispatcher {
             return BaseResponse.error("Dữ liệu EXTEND_ROOM không hợp lệ.");
         }
 
+        if (dto.getNewCheckOutDate() == null) {
+            return BaseResponse.error("Chưa chọn thời gian check-out mới.");
+        }
+
         boolean ok;
 
         if (dto.getOrderDetailRoomId() != null && !dto.getOrderDetailRoomId().trim().isEmpty()) {

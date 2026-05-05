@@ -336,38 +336,38 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
     @Override
     public boolean giaHanPhong(String roomID, LocalDateTime newCheckOutDate) {
         try (Session session = connManager.openSession()) {
-            return session.executeWrite(tx -> {
-                OrderDetailRoom active = findLatestActiveStay(tx, roomID);
-                if (active == null || active.getCheckInDate() == null) {
-                    return false;
+            String findQuery = """
+            MATCH (r:Room {roomId: $roomID})<-[:FOR_ROOM]-(odr:OrderDetailRoom)
+            WHERE odr.status IN ['Đặt', 'Check-in']
+            RETURN odr
+            ORDER BY 
+                CASE odr.status WHEN 'Check-in' THEN 0 ELSE 1 END,
+                odr.checkInDate ASC,
+                odr.orderDetailRoomId ASC
+            LIMIT 1
+            """;
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("roomID", roomID);
+
+            String odrId = session.executeRead(tx -> {
+                Result result = tx.run(findQuery, params);
+                if (!result.hasNext()) {
+                    return null;
                 }
 
-                RoomType roomType = getRoomTypeByRoomId(tx, roomID);
-                if (roomType == null) {
-                    return false;
-                }
-
-                double newFee = calculateRoomFee(
-                        roomType,
-                        active.getBookingType() == null ? null : active.getBookingType().toString(),
-                        active.getCheckInDate(),
-                        newCheckOutDate
-                );
-
-                String query = """
-                    MATCH (odr:OrderDetailRoom {orderDetailRoomId: $odrId})
-                    SET odr.checkOutDate = $newCheckOutDate,
-                        odr.roomFee = $newFee
-                    RETURN odr
-                    """;
-                Map<String, Object> params = new HashMap<>();
-                params.put("odrId", active.getOrderDetailRoomId());
-                params.put("newCheckOutDate", newCheckOutDate);
-                params.put("newFee", newFee);
-
-                Result result = tx.run(query, params);
-                return result.consume().counters().propertiesSet() > 0;
+                return result.next()
+                        .get("odr")
+                        .asNode()
+                        .get("orderDetailRoomId")
+                        .asString();
             });
+
+            if (odrId == null || odrId.trim().isEmpty()) {
+                return false;
+            }
+
+            return giaHanPhongByOdrId(odrId, newCheckOutDate);
         }
     }
 
@@ -388,7 +388,7 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
 
                 Result findResult = tx.run(findQuery, findParams);
                 if (!findResult.hasNext()) {
-                    return false;
+                    throw new IllegalArgumentException("Không tìm thấy booking cần gia hạn.");
                 }
 
                 Record record = findResult.next();
@@ -403,16 +403,62 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
                         RoomType.class
                 );
 
+                String roomId = record.get("r").asNode().get("roomId").asString();
+
                 if (odr.getCheckInDate() == null || newCheckOutDate == null) {
-                    return false;
+                    throw new IllegalArgumentException("Booking thiếu thời gian check-in hoặc check-out mới không hợp lệ.");
                 }
 
                 if (!newCheckOutDate.isAfter(odr.getCheckInDate())) {
-                    return false;
+                    throw new IllegalArgumentException("Check-out mới phải sau check-in.");
                 }
 
                 if (odr.getCheckOutDate() != null && !newCheckOutDate.isAfter(odr.getCheckOutDate())) {
-                    return false;
+                    throw new IllegalArgumentException("Check-out mới phải sau check-out hiện tại.");
+                }
+
+                String overlapQuery = """
+                MATCH (r:Room {roomId: $roomId})<-[:FOR_ROOM]-(other:OrderDetailRoom)
+                WHERE other.status IN ['Đặt', 'Check-in']
+                  AND other.orderDetailRoomId <> $odrId
+                  AND other.checkInDate < $newCheckOutDate
+                  AND other.checkOutDate > $currentCheckInDate
+                RETURN other
+                ORDER BY other.checkInDate ASC
+                LIMIT 1
+                """;
+
+                Map<String, Object> overlapParams = new HashMap<>();
+                overlapParams.put("roomId", roomId);
+                overlapParams.put("odrId", orderDetailRoomId);
+                overlapParams.put("currentCheckInDate", odr.getCheckInDate());
+                overlapParams.put("newCheckOutDate", newCheckOutDate);
+
+                Result overlapResult = tx.run(overlapQuery, overlapParams);
+
+                if (overlapResult.hasNext()) {
+                    Record conflictRecord = overlapResult.next();
+                    OrderDetailRoom conflict = mapper.toObject(
+                            conflictRecord.get("other").asNode().asMap(),
+                            OrderDetailRoom.class
+                    );
+
+                    String conflictIn = conflict.getCheckInDate() == null
+                            ? "?"
+                            : conflict.getCheckInDate().toString();
+
+                    String conflictOut = conflict.getCheckOutDate() == null
+                            ? "?"
+                            : conflict.getCheckOutDate().toString();
+
+                    throw new IllegalArgumentException(
+                            "Không thể gia hạn vì thời gian mới bị trùng với booking khác của phòng "
+                                    + roomId
+                                    + ". Khung giờ bị trùng: "
+                                    + conflictIn
+                                    + " - "
+                                    + conflictOut
+                    );
                 }
 
                 double newFee = calculateRoomFee(

@@ -149,13 +149,7 @@ public class RoomStayServiceImpl implements RoomStayService {
             throw new IllegalArgumentException("Chưa chọn thời gian check-out mới.");
         }
 
-        boolean ok = roomStayRepository.giaHanPhongByOdrId(orderDetailRoomId.trim(), newCheckOutDate);
-
-        if (!ok) {
-            throw new IllegalArgumentException("Không thể gia hạn booking này. Vui lòng kiểm tra lại thời gian check-out mới.");
-        }
-
-        return true;
+        return roomStayRepository.giaHanPhongByOdrId(orderDetailRoomId.trim(), newCheckOutDate);
     }
 
     @Override
