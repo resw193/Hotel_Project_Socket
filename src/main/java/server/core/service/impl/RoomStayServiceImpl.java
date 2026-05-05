@@ -140,6 +140,25 @@ public class RoomStayServiceImpl implements RoomStayService {
     }
 
     @Override
+    public boolean giaHanPhongByOdrId(String orderDetailRoomId, LocalDateTime newCheckOutDate) {
+        if (isBlank(orderDetailRoomId)) {
+            throw new IllegalArgumentException("Mã chi tiết đặt phòng không hợp lệ.");
+        }
+
+        if (newCheckOutDate == null) {
+            throw new IllegalArgumentException("Chưa chọn thời gian check-out mới.");
+        }
+
+        boolean ok = roomStayRepository.giaHanPhongByOdrId(orderDetailRoomId.trim(), newCheckOutDate);
+
+        if (!ok) {
+            throw new IllegalArgumentException("Không thể gia hạn booking này. Vui lòng kiểm tra lại thời gian check-out mới.");
+        }
+
+        return true;
+    }
+
+    @Override
     public boolean addServiceToRoom(String roomID, String serviceName, int quantity) {
         if (isBlank(roomID) || isBlank(serviceName)) {
             throw new IllegalArgumentException("Thiếu dữ liệu bắt buộc.");

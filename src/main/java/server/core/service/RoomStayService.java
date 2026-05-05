@@ -24,6 +24,8 @@ public interface RoomStayService {
 
     boolean giaHanPhong(String roomID, LocalDateTime newCheckOutDate);
 
+    boolean giaHanPhongByOdrId(String orderDetailRoomId, LocalDateTime newCheckOutDate);
+
     boolean addServiceToRoom(String roomID, String serviceName, int quantity);
 
     OdrInfoDTO getActiveBookingInfo(String roomID);

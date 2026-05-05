@@ -489,11 +489,20 @@ public class RequestDispatcher {
 
     private BaseResponse handleExtendRoom(BaseRequest request) {
         Object data = request.getData();
+
         if (!(data instanceof ExtendRoomRequestDTO dto)) {
             return BaseResponse.error("Dữ liệu EXTEND_ROOM không hợp lệ.");
         }
 
-        boolean ok = roomStayService.giaHanPhong(dto.getRoomID(), dto.getNewCheckOutDate());
+        boolean ok;
+
+        if (dto.getOrderDetailRoomId() != null && !dto.getOrderDetailRoomId().trim().isEmpty()) {
+            ok = roomStayService.giaHanPhongByOdrId(dto.getOrderDetailRoomId(), dto.getNewCheckOutDate());
+        }
+        else {
+            ok = roomStayService.giaHanPhong(dto.getRoomID(), dto.getNewCheckOutDate());
+        }
+
         return ok
                 ? BaseResponse.success(null, "Gia hạn phòng thành công.")
                 : BaseResponse.error("Không thể gia hạn phòng.");

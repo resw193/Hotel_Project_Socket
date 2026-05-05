@@ -9,6 +9,7 @@ public class ExtendRoomRequestDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private String roomID;
+    private String orderDetailRoomId;
     private LocalDateTime newCheckOutDate;
 
     public ExtendRoomRequestDTO() {
@@ -19,12 +20,26 @@ public class ExtendRoomRequestDTO implements Serializable {
         this.newCheckOutDate = newCheckOutDate;
     }
 
+    public ExtendRoomRequestDTO(String roomID, String orderDetailRoomId, LocalDateTime newCheckOutDate) {
+        this.roomID = roomID;
+        this.orderDetailRoomId = orderDetailRoomId;
+        this.newCheckOutDate = newCheckOutDate;
+    }
+
     public String getRoomID() {
         return roomID;
     }
 
     public void setRoomID(String roomID) {
         this.roomID = roomID;
+    }
+
+    public String getOrderDetailRoomId() {
+        return orderDetailRoomId;
+    }
+
+    public void setOrderDetailRoomId(String orderDetailRoomId) {
+        this.orderDetailRoomId = orderDetailRoomId;
     }
 
     public LocalDateTime getNewCheckOutDate() {

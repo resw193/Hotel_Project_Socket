@@ -372,6 +372,75 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
     }
 
     @Override
+    public boolean giaHanPhongByOdrId(String orderDetailRoomId, LocalDateTime newCheckOutDate) {
+        try (Session session = connManager.openSession()) {
+            return session.executeWrite(tx -> {
+                String findQuery = """
+                MATCH (odr:OrderDetailRoom {orderDetailRoomId: $odrId})-[:FOR_ROOM]->(r:Room)-[:HAS_TYPE]->(rt:RoomType)
+                MATCH (o:Order)-[:HAS_ROOM_DETAIL]->(odr)
+                WHERE odr.status IN ['Đặt', 'Check-in']
+                RETURN odr, r, rt, o
+                LIMIT 1
+                """;
+
+                Map<String, Object> findParams = new HashMap<>();
+                findParams.put("odrId", orderDetailRoomId);
+
+                Result findResult = tx.run(findQuery, findParams);
+                if (!findResult.hasNext()) {
+                    return false;
+                }
+
+                Record record = findResult.next();
+
+                OrderDetailRoom odr = mapper.toObject(
+                        record.get("odr").asNode().asMap(),
+                        OrderDetailRoom.class
+                );
+
+                RoomType roomType = mapper.toObject(
+                        record.get("rt").asNode().asMap(),
+                        RoomType.class
+                );
+
+                if (odr.getCheckInDate() == null || newCheckOutDate == null) {
+                    return false;
+                }
+
+                if (!newCheckOutDate.isAfter(odr.getCheckInDate())) {
+                    return false;
+                }
+
+                if (odr.getCheckOutDate() != null && !newCheckOutDate.isAfter(odr.getCheckOutDate())) {
+                    return false;
+                }
+
+                double newFee = calculateRoomFee(
+                        roomType,
+                        odr.getBookingType() == null ? null : odr.getBookingType().toString(),
+                        odr.getCheckInDate(),
+                        newCheckOutDate
+                );
+
+                String updateQuery = """
+                MATCH (odr:OrderDetailRoom {orderDetailRoomId: $odrId})
+                SET odr.checkOutDate = $newCheckOutDate,
+                    odr.roomFee = $newFee
+                RETURN odr
+                """;
+
+                Map<String, Object> updateParams = new HashMap<>();
+                updateParams.put("odrId", orderDetailRoomId);
+                updateParams.put("newCheckOutDate", newCheckOutDate);
+                updateParams.put("newFee", newFee);
+
+                Result updateResult = tx.run(updateQuery, updateParams);
+                return updateResult.consume().counters().propertiesSet() > 0;
+            });
+        }
+    }
+
+    @Override
     public boolean capNhatDichVuChoPhong(String roomID, String serviceName, int quantity) {
         try (Session session = connManager.openSession()) {
             return session.executeWrite(tx -> {

@@ -25,6 +25,8 @@ public interface RoomStayRepository {
 
     boolean giaHanPhong(String roomID, LocalDateTime newCheckOutDate);
 
+    boolean giaHanPhongByOdrId(String orderDetailRoomId, LocalDateTime newCheckOutDate);
+
     boolean capNhatDichVuChoPhong(String roomID, String serviceName, int quantity);
 
     OrderDetailRoom getPendingBookingByRoomId(String roomID);
