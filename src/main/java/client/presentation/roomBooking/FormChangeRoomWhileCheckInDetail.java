@@ -1,9 +1,7 @@
 package client.presentation.roomBooking;
 
-import client.network.socket.HotelClient;
-import client.network.socket.SocketRequestExecutor;
 import client.network.socket.SocketSessionManager;
-import client.presentation.login.main.Application;
+import com.raven.datechooser.DateChooser;
 import common.dto.OdrInfoDTO;
 import common.dto.RoomDTO;
 import common.dto.request_dto.CalculateRoomFeeRequestDTO;
@@ -26,166 +24,419 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
     private final Color BG = new Color(0x0B1F33);
     private final Color FG = new Color(0xE9EEF6);
     private final Color CARD_BG = new Color(0x102D4A);
+    private final Color PANEL_BG = new Color(0x123657);
+    private final Color PANEL_BG_2 = new Color(0x143F66);
     private final Color BORDER = new Color(0x274A6B);
     private final Color PRIMARY = new Color(0xF5C452);
+    private final Color MUTED = new Color(0xB8C4D4);
+    private final Color SUCCESS = new Color(0x2FC35B);
     private final Color DANGER = new Color(0xF26B6B);
+    private final Color BTN_SECONDARY = new Color(0x1B4D78);
 
     private final String oldRoomID;
     private final RoomDTO newRoom;
     private final OdrInfoDTO odrInfoCheckIn;
     private final FormChangeRoomWhileCheckIn parent;
 
-    private JLabel lblOldPriceSeg, lblNewPriceSeg, lblOldCheckIn, lblOldCheckOut, lblCheckOutRoomNew, lblChangeTime;
-    private JLabel lblHint;
+    private JTextArea txtOldCheckOut;
+    private JTextArea txtOldPriceSeg;
 
-    private LocalDateTime checkInOld, checkOutOld;
+    private JTextArea txtChangeTime;
+    private JTextArea txtCheckOutRoomNew;
+    private JTextArea txtNewPriceSeg;
+
+    private JTextArea txtPreviewOldRoom;
+    private JTextArea txtPreviewNewRoom;
+    private JTextArea txtPreviewGuest;
+    private JTextArea txtPreviewChangeTime;
+    private JTextArea txtPreviewOldFee;
+    private JTextArea txtPreviewNewFee;
+
+    private JLabel lblStatusText;
+    private JTextArea txtNote;
+
+    private LocalDateTime checkInOld;
+    private LocalDateTime checkOutOld;
     private LocalDateTime changeTimeSelected;
 
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    public FormChangeRoomWhileCheckInDetail(FormChangeRoomWhileCheckIn parent,
-                                            String oldRoomID,
-                                            RoomDTO newRoom,
-                                            OdrInfoDTO odrInfoCheckIn) {
+    public FormChangeRoomWhileCheckInDetail(FormChangeRoomWhileCheckIn parent, String oldRoomID, RoomDTO newRoom, OdrInfoDTO odrInfoCheckIn) {
         super(parent, "Xác nhận đổi phòng (đang ở)", true);
+
         this.parent = parent;
         this.oldRoomID = oldRoomID;
         this.newRoom = newRoom;
         this.odrInfoCheckIn = odrInfoCheckIn;
-        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        getContentPane().setBackground(BG);
-        setLayout(new BorderLayout());
+        this.checkInOld = odrInfoCheckIn.getCheckIn() == null
+                ? LocalDateTime.now().minusMinutes(5)
+                : odrInfoCheckIn.getCheckIn();
+
+        this.checkOutOld = odrInfoCheckIn.getCheckOut() == null
+                ? checkInOld.plusHours(2)
+                : odrInfoCheckIn.getCheckOut();
+
+        this.changeTimeSelected =
+                (LocalDateTime.now().isAfter(checkInOld) && LocalDateTime.now().isBefore(checkOutOld))
+                        ? LocalDateTime.now().withSecond(0).withNano(0)
+                        : checkInOld.plusMinutes(1).withSecond(0).withNano(0);
+
+        initUI();
+        recalculateRoomFee();
+    }
+
+    private void initUI() {
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(true);
 
-        Dimension scr = Toolkit.getDefaultToolkit().getScreenSize();
-        setSize((int) (scr.width * 0.70), (int) (scr.height * 0.72));
-        setMinimumSize(new Dimension(900, 620));
+        applyLargeDialogSize(0.96, 0.90, 1600, 850);
 
-        checkInOld = odrInfoCheckIn.getCheckIn() == null ? LocalDateTime.now().minusMinutes(5) : odrInfoCheckIn.getCheckIn();
-        checkOutOld = odrInfoCheckIn.getCheckOut() == null ? checkInOld.plusHours(2) : odrInfoCheckIn.getCheckOut();
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG);
 
-        changeTimeSelected =
-                (LocalDateTime.now().isAfter(checkInOld) && LocalDateTime.now().isBefore(checkOutOld))
-                        ? LocalDateTime.now()
-                        : checkInOld.plusMinutes(1);
+        root.add(buildHeader(), BorderLayout.NORTH);
+        root.add(buildCenter(), BorderLayout.CENTER);
+        root.add(buildFooter(), BorderLayout.SOUTH);
 
-        JLabel lblTitle = new JLabel("XÁC NHẬN ĐỔI PHÒNG (ĐÃ CHECK-IN)", SwingConstants.CENTER);
-        lblTitle.setForeground(FG);
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblTitle.setBorder(BorderFactory.createEmptyBorder(12, 12, 8, 12));
-        add(lblTitle, BorderLayout.NORTH);
+        setContentPane(root);
 
-        JPanel pnBody = new JPanel(new MigLayout("insets 16 18 16 18, gap 14", "[180!,left]10[fill,grow]", ""));
-        pnBody.setBackground(BG);
+        getRootPane().registerKeyboardAction(e -> dispose(), KeyStroke.getKeyStroke("ESCAPE"), JComponent.WHEN_IN_FOCUSED_WINDOW);
 
-        JScrollPane scrollPane = new JScrollPane(pnBody);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        scrollPane.getVerticalScrollBar().setUnitIncrement(18);
-        add(scrollPane, BorderLayout.CENTER);
+        setLocationRelativeTo(getOwner());
+    }
 
-        CompoundBorder sectionBorder = BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER, 2),
-                BorderFactory.createEmptyBorder(12, 12, 12, 12)
-        );
+    private JComponent buildHeader() {
+        JPanel header = new JPanel(new MigLayout(
+                "insets 20 24 16 24, fillx",
+                "[grow,fill]push[][]",
+                "[]"
+        ));
+        header.setBackground(BG);
 
-        JLabel lblInfoOldRoom = sectionTitle("Thông tin hiện tại (phòng cũ)");
-        JPanel pnCardOldRoom = new JPanel(new MigLayout("wrap 2, gapx 12, insets 8 10 8 10", "[right]8[fill,grow]"));
-        pnCardOldRoom.setBackground(CARD_BG);
-        pnCardOldRoom.setBorder(sectionBorder);
+        JPanel left = new JPanel(new MigLayout("wrap 1, insets 0, gap 0 6", "[grow,fill]"));
+        left.setOpaque(false);
 
-        addKvp(pnCardOldRoom, "Phòng cũ:", oldRoomID);
-        addKvp(pnCardOldRoom, "Booking type:", safe(odrInfoCheckIn.getBookingType()));
+        JLabel title = new JLabel("XÁC NHẬN ĐỔI PHÒNG (ĐÃ CHECK-IN)");
+        title.setForeground(FG);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 30));
 
-        lblOldCheckIn = valueLabel(checkInOld.format(formatter));
-        lblOldCheckOut = valueLabel(checkOutOld.format(formatter));
+        JLabel sub = new JLabel("Kiểm tra phòng cũ, phòng mới, thời điểm chuyển và chi phí trước khi xác nhận.");
+        sub.setForeground(MUTED);
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        addKvp(pnCardOldRoom, "Check-in cũ:", lblOldCheckIn);
-        addKvp(pnCardOldRoom, "Check-out cũ (tự cập nhật = thời điểm chuyển):", lblOldCheckOut);
+        left.add(title);
+        left.add(sub);
 
-        lblOldPriceSeg = valueLabel("…");
-        addKvp(pnCardOldRoom, "Giá phòng cũ (Check-in đến thời điểm chuyển):", lblOldPriceSeg);
+        header.add(left, "growx");
+        header.add(headerBadge("Phòng cũ: " + safe(oldRoomID)), "h 48!");
+        header.add(headerBadge("Phòng mới: " + safe(newRoom.getRoomId())), "h 48!");
 
-        pnBody.add(lblInfoOldRoom, "span 2, wrap");
-        pnBody.add(pnCardOldRoom, "span 2, growx, wrap");
+        return header;
+    }
 
-        JLabel lblInfoNewRoom = sectionTitle("Thiết lập phòng mới");
-        JPanel pnCardNewRoom = new JPanel(new MigLayout("wrap 2, gapx 12, insets 8 10 8 10", "[right]8[fill,grow]"));
-        pnCardNewRoom.setBackground(CARD_BG);
-        pnCardNewRoom.setBorder(sectionBorder);
+    private JComponent buildCenter() {
+        JPanel content = new JPanel(new MigLayout(
+                "insets 0 24 18 24, gap 18, fill",
+                "[grow,fill][540!,fill]",
+                "[grow,fill]"
+        ));
+        content.setBackground(BG);
 
-        addKvp(pnCardNewRoom, "Phòng mới:", newRoom.getRoomId() + " – " + safe(newRoom.getDescription()));
-        addKvp(pnCardNewRoom, "Loại phòng mới:", safe(newRoom.getRoomTypeName()));
-        addKvp(pnCardNewRoom, "Booking type:", safe(odrInfoCheckIn.getBookingType()));
+        content.add(buildLeftColumn(), "grow");
+        content.add(buildRightColumn(), "grow");
 
-        lblChangeTime = valueLabel(changeTimeSelected.format(formatter));
+        JScrollPane sp = new JScrollPane(content);
+        sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        sp.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        sp.getVerticalScrollBar().setUnitIncrement(18);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+        sp.getViewport().setBackground(BG);
+
+        return sp;
+    }
+
+    private JComponent buildLeftColumn() {
+        JPanel col = new JPanel(new MigLayout(
+                "wrap 1, insets 0, gap 16, fillx",
+                "[grow,fill]",
+                "[][][]"
+        ));
+        col.setOpaque(false);
+
+        col.add(buildOldRoomCard(), "growx");
+        col.add(buildNewRoomCard(), "growx");
+        col.add(buildTransferCard(), "growx");
+
+        return col;
+    }
+
+    private JComponent buildRightColumn() {
+        JPanel col = new JPanel(new MigLayout(
+                "wrap 1, insets 0, gap 16, fillx, filly",
+                "[grow,fill]",
+                "[][grow,fill]"
+        ));
+        col.setOpaque(false);
+
+        col.add(buildPreviewCard(), "growx");
+        col.add(buildStatusCard(), "grow");
+
+        return col;
+    }
+
+    private JComponent buildOldRoomCard() {
+        JPanel card = cardPanel(new MigLayout(
+                "wrap 1, insets 18, gap 0 10, fillx",
+                "[grow,fill]",
+                "[]8[]12[]"
+        ));
+
+        card.add(sectionTitle("1. Thông tin hiện tại (phòng cũ)"));
+        card.add(mutedLabel("Phòng cũ vẫn ở trạng thái check-in cho đến đúng thời điểm chuyển."));
+
+        JPanel grid = new JPanel(new MigLayout(
+                "insets 0, gap 10 10, fillx",
+                "[grow,fill][grow,fill][grow,fill]",
+                "[][][]"
+        ));
+        grid.setOpaque(false);
+
+        txtOldCheckOut = infoValue(changeTimeSelected.format(formatter));
+        txtOldPriceSeg = infoValue("Đang tính...");
+
+        grid.add(infoBox("Phòng cũ", infoValue(oldRoomID)), "growx");
+        grid.add(infoBox("Khách hàng", infoValue(safe(odrInfoCheckIn.getFullName()))), "growx");
+        grid.add(infoBox("Số điện thoại", infoValue(safe(odrInfoCheckIn.getPhone()))), "growx");
+
+        grid.add(infoBox("Kiểu booking", infoValue(safe(odrInfoCheckIn.getBookingType()))), "growx");
+        grid.add(infoBox("Check-in cũ", infoValue(checkInOld.format(formatter))), "growx");
+        grid.add(infoBox("Check-out cũ đến thời điểm chuyển", txtOldCheckOut), "growx");
+
+        grid.add(infoBox("Giá phòng cũ từ check-in đến thời điểm chuyển", txtOldPriceSeg), "span 3, growx");
+
+        card.add(grid, "growx");
+        return card;
+    }
+
+    private JComponent buildNewRoomCard() {
+        JPanel card = cardPanel(new MigLayout(
+                "wrap 1, insets 18, gap 0 10, fillx",
+                "[grow,fill]",
+                "[]8[]12[]"
+        ));
+
+        card.add(sectionTitle("2. Thiết lập phòng mới"));
+        card.add(mutedLabel("Phòng mới sẽ bắt đầu từ thời điểm chuyển đến check-out cuối cùng."));
+
+        JPanel grid = new JPanel(new MigLayout(
+                "insets 0, gap 10 10, fillx",
+                "[grow,fill][grow,fill][grow,fill]",
+                "[][][]"
+        ));
+        grid.setOpaque(false);
+
+        txtChangeTime = infoValue(changeTimeSelected.format(formatter));
+        txtCheckOutRoomNew = infoValue(checkOutOld.format(formatter));
+        txtNewPriceSeg = infoValue("Đang tính...");
+
+        grid.add(infoBox("Phòng mới", infoValue(safe(newRoom.getRoomId()) + " - " + safe(newRoom.getDescription()))), "span 3, growx");
+
+        grid.add(infoBox("Loại phòng", infoValue(safe(newRoom.getRoomTypeName()))), "growx");
+        grid.add(infoBox("View", infoValue(safe(newRoom.getView()))), "growx");
+        grid.add(infoBox("Booking type", infoValue(safe(odrInfoCheckIn.getBookingType()))), "growx");
+
+        grid.add(infoBox("Bắt đầu ở phòng mới", txtChangeTime), "growx");
+        grid.add(infoBox("Check-out cuối cùng", txtCheckOutRoomNew), "growx");
+        grid.add(infoBox("Giá phòng mới", txtNewPriceSeg), "growx");
+
+        card.add(grid, "growx");
+        return card;
+    }
+
+    private JComponent buildTransferCard() {
+        JPanel card = cardPanel(new MigLayout(
+                "wrap 1, insets 18, gap 0 10, fillx",
+                "[grow,fill]",
+                "[]8[]12[]"
+        ));
+
+        card.add(sectionTitle("3. Chọn thời điểm chuyển"));
+        card.add(mutedLabel("Thời điểm chuyển phải nằm trong khoảng sau check-in cũ và trước check-out cũ."));
+
+        JPanel chooserRow = new JPanel(new MigLayout(
+                "insets 0, gap 12, fillx",
+                "[][grow,fill][240!]",
+                "[]"
+        ));
+        chooserRow.setOpaque(false);
+
+        chooserRow.add(label("Thời điểm chuyển hiện tại:"));
+        chooserRow.add(valueField(changeTimeSelected.format(formatter)), "growx");
+
         JButton btnPick = primaryButton("Chọn thời điểm chuyển");
         btnPick.addActionListener(e -> {
             LocalDateTime min = checkInOld.plusMinutes(1);
             LocalDateTime max = checkOutOld.minusMinutes(1);
+
             LocalDateTime picked = pickChangeTime(min, max, changeTimeSelected);
             if (picked != null) {
-                changeTimeSelected = picked;
-                lblChangeTime.setText(changeTimeSelected.format(formatter));
-                lblOldCheckOut.setText(changeTimeSelected.format(formatter));
+                changeTimeSelected = picked.withSecond(0).withNano(0);
+                updatePreview();
                 recalculateRoomFee();
             }
         });
-        addKvp(pnCardNewRoom, "Thời điểm chuyển:", wrapInline(lblChangeTime, btnPick));
 
-        lblCheckOutRoomNew = valueLabel(checkOutOld.format(formatter));
-        addKvp(pnCardNewRoom, "Check-out (không đổi):", lblCheckOutRoomNew);
+        chooserRow.add(btnPick, "h 42!");
 
-        lblNewPriceSeg = valueLabel("…");
-        addKvp(pnCardNewRoom, "Giá phòng mới (từ thời điểm chuyển đến Check-out):", lblNewPriceSeg);
+        JPanel notePanel = new JPanel(new MigLayout(
+                "wrap 1, insets 12, gap 0 5",
+                "[grow,fill]"
+        ));
+        notePanel.setBackground(PANEL_BG);
+        notePanel.setBorder(BorderFactory.createLineBorder(BORDER));
 
-        pnBody.add(lblInfoNewRoom, "span 2, wrap");
-        pnBody.add(pnCardNewRoom, "span 2, growx, wrap");
+        notePanel.add(mutedLabel("Lưu ý nghiệp vụ"));
+        notePanel.add(mutedLabel("- Phòng cũ vẫn check-in đến đúng thời điểm chuyển."));
+        notePanel.add(mutedLabel("- Phòng mới bắt đầu tính tiền từ thời điểm chuyển đến check-out cuối cùng."));
 
-        lblHint = new JLabel(" ");
-        lblHint.setForeground(DANGER);
-        pnBody.add(lblHint, "span 2, growx");
+        card.add(chooserRow, "growx");
+        card.add(notePanel, "growx");
 
-        JPanel pnFooter = new JPanel(new MigLayout("insets 10 16 16 28", "[grow]push[]", "[]"));
-        pnFooter.setBackground(BG);
+        return card;
+    }
 
+    private JComponent buildPreviewCard() {
+        JPanel card = cardPanel(new MigLayout(
+                "wrap 1, insets 18, gap 0 10, fillx",
+                "[grow,fill]",
+                "[]8[]12[]"
+        ));
+
+        card.add(sectionTitle("4. Xem trước cập nhật"));
+        card.add(mutedLabel("Tóm tắt các thông tin quan trọng trước khi xác nhận đổi phòng."));
+
+        JPanel summary = new JPanel(new MigLayout(
+                "wrap 2, insets 0, gap 10 10, fillx",
+                "[grow,fill][grow,fill]",
+                "[][][]"
+        ));
+        summary.setOpaque(false);
+
+        txtPreviewOldRoom = infoValue(safe(oldRoomID));
+        txtPreviewNewRoom = infoValue(safe(newRoom.getRoomId()));
+        txtPreviewGuest = infoValue(safe(odrInfoCheckIn.getFullName()));
+        txtPreviewChangeTime = infoValue(changeTimeSelected.format(formatter));
+        txtPreviewOldFee = infoValue("Đang tính...");
+        txtPreviewNewFee = infoValue("Đang tính...");
+
+        summary.add(infoBox("Phòng cũ", txtPreviewOldRoom), "growx");
+        summary.add(infoBox("Phòng mới", txtPreviewNewRoom), "growx");
+
+        summary.add(infoBox("Khách hàng", txtPreviewGuest), "growx");
+        summary.add(infoBox("Thời điểm chuyển", txtPreviewChangeTime), "growx");
+
+        summary.add(infoBox("Chi phí phòng cũ", txtPreviewOldFee), "growx");
+        summary.add(infoBox("Chi phí phòng mới", txtPreviewNewFee), "growx");
+
+        JTextArea explain = plainTextArea(
+                "Sau khi xác nhận:\n" +
+                        "- Phòng cũ vẫn giữ trạng thái check-in đến đúng thời điểm chuyển.\n" +
+                        "- Phòng mới bắt đầu được sử dụng từ thời điểm chuyển đến check-out cuối.\n" +
+                        "- Hệ thống sẽ tính lại chi phí theo 2 đoạn thời gian."
+        );
+        explain.setBackground(PANEL_BG_2);
+        explain.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+
+        card.add(summary, "growx");
+        card.add(explain, "growx, h 120!");
+
+        return card;
+    }
+
+    private JComponent buildStatusCard() {
+        JPanel card = cardPanel(new MigLayout(
+                "wrap 1, insets 18, gap 0 10, fillx, filly",
+                "[grow,fill]",
+                "[]8[]12[]8[grow,fill]"
+        ));
+
+        card.add(sectionTitle("5. Trạng thái kiểm tra"));
+        card.add(mutedLabel("Kiểm tra nhanh tình trạng trước khi bấm xác nhận."));
+
+        lblStatusText = new JLabel("Đang kiểm tra...");
+        lblStatusText.setOpaque(true);
+        lblStatusText.setHorizontalAlignment(SwingConstants.CENTER);
+        lblStatusText.setBackground(new Color(0xD2A93A));
+        lblStatusText.setForeground(new Color(0x0B1F33));
+        lblStatusText.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblStatusText.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+
+        txtNote = plainTextArea("");
+        txtNote.setBackground(PANEL_BG_2);
+        txtNote.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+
+        card.add(lblStatusText, "growx, h 52!");
+        card.add(mutedLabel("Ghi chú"));
+        card.add(txtNote, "grow");
+
+        return card;
+    }
+
+    private JComponent buildFooter() {
+        JPanel footer = new JPanel(new MigLayout(
+                "insets 12 24 20 24, fillx",
+                "[grow,fill]push[140!][210!]",
+                "[]"
+        ));
+        footer.setBackground(BG);
+
+        JLabel note = new JLabel("Hệ thống sẽ gửi yêu cầu đổi phòng theo nghiệp vụ hiện tại. Vui lòng kiểm tra kỹ trước khi xác nhận.");
+        note.setForeground(MUTED);
+        note.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+
+        JButton btnClose = secondaryButton("Đóng");
         JButton btnConfirm = primaryButton("Xác nhận đổi phòng");
+
+        btnClose.addActionListener(e -> dispose());
         btnConfirm.addActionListener(e -> confirmChangeRoomWhileCheckIn());
 
-        pnFooter.add(new JLabel(), "grow");
-        pnFooter.add(btnConfirm);
-        add(pnFooter, BorderLayout.SOUTH);
+        footer.add(note, "growx");
+        footer.add(btnClose, "h 44!");
+        footer.add(btnConfirm, "h 44!");
 
-        getRootPane().registerKeyboardAction(e -> dispose(),
-                KeyStroke.getKeyStroke("ESCAPE"), JComponent.WHEN_IN_FOCUSED_WINDOW);
-
-        recalculateRoomFee();
+        return footer;
     }
 
     private void confirmChangeRoomWhileCheckIn() {
         if (!(changeTimeSelected.isAfter(checkInOld) && changeTimeSelected.isBefore(checkOutOld))) {
-            JOptionPane.showMessageDialog(this, "Thời điểm chuyển phải sau check-in và trước check-out hiện tại.");
+            JOptionPane.showMessageDialog(this,
+                    "Thời điểm chuyển phải sau check-in và trước check-out hiện tại.");
             return;
         }
 
         try {
             BaseResponse response = sendRequest(
                     CommandType.CHANGE_ROOM_WHILE_CHECKIN,
-                    new ChangeRoomWhileCheckInRequestDTO(
-                            oldRoomID,
-                            newRoom.getRoomId(),
-                            changeTimeSelected
-                    )
+                    new ChangeRoomWhileCheckInRequestDTO(oldRoomID, newRoom.getRoomId(), changeTimeSelected)
             );
 
             if (response.isSuccess()) {
                 JOptionPane.showMessageDialog(this,
-                        "Lên lịch đổi phòng thành công!\n"
-                                + "• Phòng cũ vẫn Check-in đến: " + changeTimeSelected.format(formatter) + "\n"
-                                + "• Phòng mới được đặt từ: " + changeTimeSelected.format(formatter) + "\n"
-                                + "• Phòng mới: " + newRoom.getRoomId() + "\n"
-                                + "• Check-out cuối: " + checkOutOld.format(formatter) + "\n\n"
-                                + "Đến thời điểm chuyển, hãy check-out phòng cũ và check-in phòng mới.");
+                        "Lên lịch đổi phòng thành công!\n\n" +
+                                "• Phòng cũ vẫn Check-in đến: " + changeTimeSelected.format(formatter) + "\n" +
+                                "• Phòng mới được đặt từ: " + changeTimeSelected.format(formatter) + "\n" +
+                                "• Phòng mới: " + newRoom.getRoomId() + "\n" +
+                                "• Check-out cuối: " + checkOutOld.format(formatter) + "\n\n" +
+                                "Đến thời điểm chuyển, hãy check-out phòng cũ và check-in phòng mới.");
+
                 dispose();
                 parent.closeAfterSuccess();
             } else {
@@ -197,11 +448,17 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
     }
 
     private void recalculateRoomFee() {
-        lblHint.setText(" ");
+        updatePreview();
+
         if (!(changeTimeSelected.isAfter(checkInOld) && changeTimeSelected.isBefore(checkOutOld))) {
-            lblHint.setText("Thời điểm chuyển phải sau check-in và trước check-out hiện tại.");
-            lblOldPriceSeg.setText("Thời gian không hợp lệ");
-            lblNewPriceSeg.setText("Thời gian không hợp lệ");
+            txtOldPriceSeg.setText("Thời gian không hợp lệ");
+            txtNewPriceSeg.setText("Thời gian không hợp lệ");
+            txtPreviewOldFee.setText("Thời gian không hợp lệ");
+            txtPreviewNewFee.setText("Thời gian không hợp lệ");
+
+            setStatus(false,
+                    "Chưa hợp lệ",
+                    "Thời điểm chuyển phải sau check-in cũ và trước check-out cũ.");
             return;
         }
 
@@ -218,9 +475,13 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
 
             if (oldRes.isSuccess()) {
                 Double oldSeg = (Double) oldRes.getData();
-                lblOldPriceSeg.setText(oldSeg == null ? "(…)" : formatMoney(oldSeg));
+                String oldFee = oldSeg == null ? "(không có dữ liệu)" : formatMoney(oldSeg);
+
+                txtOldPriceSeg.setText(oldFee);
+                txtPreviewOldFee.setText(oldFee);
             } else {
-                lblOldPriceSeg.setText(oldRes.getMessage());
+                txtOldPriceSeg.setText(oldRes.getMessage());
+                txtPreviewOldFee.setText(oldRes.getMessage());
             }
 
             BaseResponse newRes = sendRequest(
@@ -235,133 +496,366 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
 
             if (newRes.isSuccess()) {
                 Double newSeg = (Double) newRes.getData();
-                lblNewPriceSeg.setText(newSeg == null ? "(…)" : formatMoney(newSeg));
+                String newFee = newSeg == null ? "(không có dữ liệu)" : formatMoney(newSeg);
+
+                txtNewPriceSeg.setText(newFee);
+                txtPreviewNewFee.setText(newFee);
+
+                setStatus(true,
+                        "Hợp lệ",
+                        "Có thể tiến hành xác nhận đổi phòng.\n\n" +
+                                "- Phòng cũ: " + safe(oldRoomID) + "\n" +
+                                "- Phòng mới: " + safe(newRoom.getRoomId()) + "\n" +
+                                "- Khách hàng: " + safe(odrInfoCheckIn.getFullName()) + "\n" +
+                                "- Thời điểm chuyển: " + changeTimeSelected.format(formatter) + "\n" +
+                                "- Đoạn phí phòng cũ: " + txtPreviewOldFee.getText() + "\n" +
+                                "- Đoạn phí phòng mới: " + txtPreviewNewFee.getText());
             } else {
-                lblNewPriceSeg.setText(newRes.getMessage());
+                txtNewPriceSeg.setText(newRes.getMessage());
+                txtPreviewNewFee.setText(newRes.getMessage());
+
+                setStatus(false,
+                        "Cần kiểm tra",
+                        "Không thể tính được chi phí phòng mới.\nChi tiết: " + newRes.getMessage());
             }
         } catch (Exception ex) {
-            lblHint.setText(ex.getMessage());
+            txtOldPriceSeg.setText("Lỗi");
+            txtNewPriceSeg.setText("Lỗi");
+            txtPreviewOldFee.setText("Lỗi");
+            txtPreviewNewFee.setText("Lỗi");
+
+            setStatus(false, "Lỗi", ex.getMessage());
         }
+    }
+
+    private void updatePreview() {
+        if (txtOldCheckOut != null) {
+            txtOldCheckOut.setText(changeTimeSelected.format(formatter));
+        }
+
+        if (txtChangeTime != null) {
+            txtChangeTime.setText(changeTimeSelected.format(formatter));
+        }
+
+        if (txtCheckOutRoomNew != null) {
+            txtCheckOutRoomNew.setText(checkOutOld.format(formatter));
+        }
+
+        if (txtPreviewChangeTime != null) {
+            txtPreviewChangeTime.setText(changeTimeSelected.format(formatter));
+        }
+    }
+
+    private void setStatus(boolean ok, String title, String message) {
+        lblStatusText.setText(title);
+        lblStatusText.setBackground(ok ? SUCCESS : DANGER);
+        lblStatusText.setForeground(Color.WHITE);
+
+        txtNote.setText(message == null ? "" : message);
+        txtNote.setCaretPosition(0);
     }
 
     private BaseResponse sendRequest(CommandType commandType, Object data) {
         return SocketSessionManager.send(BaseRequest.of(commandType, data));
     }
 
+    // Chọn thoi diem chuyen
     private LocalDateTime pickChangeTime(LocalDateTime minTime, LocalDateTime maxTime, LocalDateTime current) {
-        boolean wasVisible = isVisible();
-        if (wasVisible) setVisible(false);
-
-        JDialog d = new JDialog(getOwner(), "Chọn thời điểm chuyển", Dialog.ModalityType.APPLICATION_MODAL);
-        d.getContentPane().setBackground(BG);
-        d.setLayout(new MigLayout("insets 14 18 14 18", "[right]10[fill,grow,300!]", "[][][]push[]"));
-        d.setMinimumSize(new Dimension(700, 230));
+        JDialog d = new JDialog(this, "Chọn thời điểm chuyển", true);
+        d.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         d.setResizable(false);
 
-        JLabel lbMin = valueLabel(minTime.format(formatter));
-        JLabel lbMax = valueLabel(maxTime.format(formatter));
+        JPanel root = new JPanel(new BorderLayout());
+        root.setBackground(BG);
 
-        JSpinner spDate = new JSpinner(new SpinnerDateModel(java.sql.Date.valueOf(current.toLocalDate()), null, null, java.util.Calendar.DAY_OF_MONTH));
-        spDate.setEditor(new JSpinner.DateEditor(spDate, "dd/MM/yyyy"));
+        JPanel header = new JPanel(new MigLayout("wrap 1, insets 24 28 14 28, gap 0 6", "[grow]"));
+        header.setBackground(BG);
+
+        JLabel lbTitle = new JLabel("CHỌN THỜI ĐIỂM CHUYỂN");
+        lbTitle.setForeground(FG);
+        lbTitle.setFont(new Font("Segoe UI", Font.BOLD, 26));
+
+        JLabel lbSub = new JLabel("Chọn ngày và giờ chuyển phòng. Thời điểm chuyển phải nằm trong khoảng hợp lệ.");
+        lbSub.setForeground(MUTED);
+        lbSub.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        header.add(lbTitle);
+        header.add(lbSub);
+
+        root.add(header, BorderLayout.NORTH);
+
+        JPanel content = new JPanel(new MigLayout(
+                "insets 10 28 18 28, gap 14 14, fillx",
+                "[130!][grow,fill][130!][grow,fill]",
+                "[][]20[]"
+        ));
+        content.setBackground(BG);
+
+        content.add(label("Sớm nhất:"));
+        content.add(valueField(minTime.format(formatter)), "growx");
+
+        content.add(label("Muộn nhất:"));
+        content.add(valueField(maxTime.format(formatter)), "growx, wrap");
+
+        JTextField txtDate = new JTextField(current.toLocalDate().format(dateFormatter));
+        styleTextField(txtDate);
+
+        DateChooser dateChooser = new DateChooser();
+        dateChooser.setTextRefernce(txtDate);
+        dateChooser.setDateFormat("dd/MM/yyyy");
+
         JSpinner spHour = new JSpinner(new SpinnerNumberModel(current.getHour(), 0, 23, 1));
         JSpinner spMin = new JSpinner(new SpinnerNumberModel(current.getMinute(), 0, 59, 1));
 
-        styleSpinner(spDate);
-        styleSpinner(spHour);
-        styleSpinner(spMin);
+        styleSpinner(spHour, 90);
+        styleSpinner(spMin, 90);
 
-        d.add(textMuted("Sớm nhất:")); d.add(lbMin, "wrap");
-        d.add(textMuted("Muộn nhất:")); d.add(lbMax, "wrap");
-        d.add(textMuted("Thời điểm chuyển:")); d.add(rowTime(spDate, spHour, spMin), "wrap");
+        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        timePanel.setOpaque(false);
 
-        LocalDateTime[] result = new LocalDateTime[1];
+        JLabel lbHour = normalText("Giờ");
+        JLabel lbMin = normalText("Phút");
 
-        JButton btnOk = primaryButton("OK");
-        btnOk.addActionListener(e -> {
-            LocalDate date = new java.sql.Date(((java.util.Date) spDate.getValue()).getTime()).toLocalDate();
-            LocalDateTime selected = LocalDateTime.of(date, LocalTime.of((int) spHour.getValue(), (int) spMin.getValue()));
-            if (!selected.isAfter(minTime.minusNanos(1)) || !selected.isBefore(maxTime.plusNanos(1))) {
-                JOptionPane.showMessageDialog(d, "Thời điểm chuyển phải nằm trong khoảng hợp lệ.");
-                return;
-            }
-            result[0] = selected;
-            d.dispose();
-        });
+        timePanel.add(spHour);
+        timePanel.add(lbHour);
+        timePanel.add(spMin);
+        timePanel.add(lbMin);
 
-        JButton btnCancel = new JButton("Hủy");
+        content.add(label("Ngày chuyển:"));
+        content.add(txtDate, "growx");
+
+        content.add(label("Giờ chuyển:"));
+        content.add(timePanel, "growx, wrap");
+
+        JTextArea note = plainTextArea(
+                "Lưu ý nghiệp vụ:\n" +
+                        "- Thời điểm chuyển phải sau check-in cũ.\n" +
+                        "- Thời điểm chuyển phải trước check-out cũ.\n" +
+                        "- Sau khi xác nhận, hệ thống sẽ tính lại chi phí phòng cũ và phòng mới."
+        );
+        note.setBackground(PANEL_BG);
+        note.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+        ));
+
+        content.add(label("Ghi chú:"));
+        content.add(note, "span 3, growx, h 115!");
+
+        root.add(content, BorderLayout.CENTER);
+
+        JPanel footer = new JPanel(new MigLayout(
+                "insets 12 28 24 28, fillx",
+                "[grow]push[130!][150!]",
+                "[]"
+        ));
+        footer.setBackground(BG);
+
+        final LocalDateTime[] result = new LocalDateTime[1];
+
+        JButton btnCancel = secondaryButton("Hủy");
+        JButton btnOk = primaryButton("Xác nhận");
+
         btnCancel.addActionListener(e -> d.dispose());
 
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        p.setOpaque(false);
-        p.add(btnCancel);
-        p.add(btnOk);
-        d.add(p, "span 2, growx");
+        btnOk.addActionListener(e -> {
+            try {
+                LocalDate selectedDate = LocalDate.parse(txtDate.getText().trim(), dateFormatter);
 
-        d.pack();
+                LocalDateTime selected = LocalDateTime.of(
+                        selectedDate,
+                        LocalTime.of((int) spHour.getValue(), (int) spMin.getValue())
+                ).withSecond(0).withNano(0);
+
+                if (selected.isBefore(minTime) || selected.isAfter(maxTime)) {
+                    JOptionPane.showMessageDialog(d,
+                            "Thời điểm chuyển phải nằm trong khoảng:\n"
+                                    + minTime.format(formatter)
+                                    + "  đến  "
+                                    + maxTime.format(formatter));
+                    return;
+                }
+
+                result[0] = selected;
+                d.dispose();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(d,
+                        "Ngày chuyển không hợp lệ. Vui lòng chọn hoặc nhập theo định dạng dd/MM/yyyy.",
+                        "Lỗi ngày chuyển",
+                        JOptionPane.WARNING_MESSAGE);
+            }
+        });
+
+        footer.add(new JLabel(), "growx");
+        footer.add(btnCancel, "h 42!");
+        footer.add(btnOk, "h 42!");
+
+        root.add(footer, BorderLayout.SOUTH);
+
+        d.setContentPane(root);
+        d.setSize(900, 540);
+        d.setMinimumSize(new Dimension(900, 540));
         d.setLocationRelativeTo(this);
         d.setVisible(true);
 
-        if (isDisplayable()) SwingUtilities.invokeLater(() -> setVisible(true));
         return result[0];
     }
 
+    private void applyLargeDialogSize(double widthRatio, double heightRatio, int minWidth, int minHeight) {
+        Rectangle screen = GraphicsEnvironment
+                .getLocalGraphicsEnvironment()
+                .getMaximumWindowBounds();
+
+        int width = (int) Math.min(screen.width - 30, Math.max(minWidth, screen.width * widthRatio));
+        int height = (int) Math.min(screen.height - 30, Math.max(minHeight, screen.height * heightRatio));
+
+        setMinimumSize(new Dimension(Math.min(minWidth, screen.width - 30), Math.min(minHeight, screen.height - 30)));
+        setPreferredSize(new Dimension(width, height));
+        setSize(width, height);
+
+        setLocation(
+                screen.x + (screen.width - width) / 2,
+                screen.y + (screen.height - height) / 2
+        );
+    }
+
+    private JPanel cardPanel(LayoutManager layout) {
+        JPanel p = new JPanel(layout);
+        p.setBackground(CARD_BG);
+        p.setBorder(new CompoundBorder(
+                BorderFactory.createLineBorder(BORDER, 1),
+                BorderFactory.createEmptyBorder(4, 4, 4, 4)
+        ));
+        return p;
+    }
+
+    private JLabel headerBadge(String text) {
+        JLabel lb = new JLabel(text);
+        lb.setOpaque(true);
+        lb.setBackground(PRIMARY);
+        lb.setForeground(new Color(0x0B1F33));
+        lb.setHorizontalAlignment(SwingConstants.CENTER);
+        lb.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lb.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
+        return lb;
+    }
+
     private JLabel sectionTitle(String s) {
-        JLabel l = new JLabel(s);
-        l.setForeground(PRIMARY);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        return l;
+        JLabel lb = new JLabel(s);
+        lb.setForeground(PRIMARY);
+        lb.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        return lb;
     }
 
-    private JLabel valueLabel(String s) {
-        JLabel l = new JLabel(s);
-        l.setForeground(FG);
-        l.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        return l;
+    private JLabel mutedLabel(String s) {
+        JLabel lb = new JLabel(s);
+        lb.setForeground(MUTED);
+        lb.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        return lb;
     }
 
-    private JLabel textMuted(String s) {
-        JLabel l = new JLabel(s);
-        l.setForeground(new Color(0xB8C4D4));
-        return l;
+    private JLabel normalText(String s) {
+        JLabel lb = new JLabel(s);
+        lb.setForeground(FG);
+        lb.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        return lb;
     }
 
-    private void addKvp(JPanel p, String key, Object valueComp) {
-        JLabel k = new JLabel(key);
-        k.setForeground(new Color(0xB8C4D4));
-        p.add(k);
-        if (valueComp instanceof Component c) p.add(c, "growx");
-        else p.add(valueLabel(String.valueOf(valueComp)), "growx");
+    private JLabel label(String s) {
+        JLabel lb = new JLabel(s);
+        lb.setForeground(FG);
+        lb.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        return lb;
     }
 
-    private JPanel wrapInline(JComponent left, JComponent right) {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        p.setOpaque(false);
-        p.add(left);
-        p.add(right);
+    private JTextArea infoValue(String s) {
+        JTextArea txt = new JTextArea(safe(s));
+        txt.setEditable(false);
+        txt.setLineWrap(true);
+        txt.setWrapStyleWord(true);
+        txt.setOpaque(false);
+        txt.setForeground(FG);
+        txt.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        txt.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        txt.setFocusable(false);
+        return txt;
+    }
+
+    private JTextArea plainTextArea(String text) {
+        JTextArea txt = new JTextArea(text == null ? "" : text);
+        txt.setEditable(false);
+        txt.setLineWrap(true);
+        txt.setWrapStyleWord(true);
+        txt.setForeground(MUTED);
+        txt.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txt.setFocusable(false);
+        return txt;
+    }
+
+    private JComponent valueField(String s) {
+        JTextArea txt = infoValue(s);
+        txt.setBackground(PANEL_BG);
+        txt.setOpaque(true);
+        txt.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
+        return txt;
+    }
+
+    private JPanel infoBox(String title, JComponent value) {
+        JPanel p = new JPanel(new MigLayout(
+                "wrap 1, insets 10 12 10 12, fillx",
+                "[grow,fill]",
+                "[]4[grow]"
+        ));
+        p.setBackground(PANEL_BG);
+        p.setBorder(BorderFactory.createLineBorder(BORDER));
+
+        JLabel t = new JLabel(title);
+        t.setForeground(MUTED);
+        t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+
+        p.add(t, "growx");
+        p.add(value, "growx");
+
+        p.setMinimumSize(new Dimension(0, 66));
+
         return p;
     }
 
-    private JPanel rowTime(JSpinner date, JSpinner hour, JSpinner min) {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        p.setOpaque(false);
-        p.add(date);
-        p.add(new JLabel("Giờ:"));
-        p.add(hour);
-        p.add(new JLabel("Phút:"));
-        p.add(min);
-        return p;
+    private void styleTextField(JTextField txt) {
+        txt.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        txt.setForeground(FG);
+        txt.setBackground(PANEL_BG);
+        txt.setCaretColor(Color.WHITE);
+        txt.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)
+        ));
     }
 
-    private void styleSpinner(JSpinner sp) {
+    private void styleSpinner(JSpinner sp, int width) {
         sp.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        sp.setPreferredSize(new Dimension(100, 28));
+        sp.setPreferredSize(new Dimension(width, 38));
+        sp.setBorder(BorderFactory.createLineBorder(BORDER));
     }
 
     private JButton primaryButton(String text) {
         JButton b = new JButton(text);
         b.setBackground(PRIMARY);
         b.setForeground(new Color(0x0B1F33));
-        b.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        b.setFocusPainted(false);
+        return b;
+    }
+
+    private JButton secondaryButton(String text) {
+        JButton b = new JButton(text);
+        b.setBackground(BTN_SECONDARY);
+        b.setForeground(Color.WHITE);
+        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        b.setFocusPainted(false);
         return b;
     }
 
@@ -370,6 +864,6 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
     }
 
     private String safe(String s) {
-        return s == null ? "-" : s;
+        return s == null || s.trim().isEmpty() ? "-" : s.trim();
     }
 }
