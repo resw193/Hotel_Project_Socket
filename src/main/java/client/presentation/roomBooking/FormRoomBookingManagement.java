@@ -63,7 +63,7 @@ public class FormRoomBookingManagement extends JPanel {
     private JPanel pnGrid;
     private JScrollPane scrollPane;
 
-    private String currentStatusFilter = "Trống";
+    private String currentStatusFilter = "Tất cả / Có thể đặt";
     private final Set<String> selectedRoomIDs = new LinkedHashSet<>();
 
     private JDialog multiBookDialog;
@@ -111,7 +111,7 @@ public class FormRoomBookingManagement extends JPanel {
         pnFilter.add(cbxType, "wmin 120");
 
         pnFilter.add(makeFilterLabel("Trạng thái:"), "right");
-        cbxStatus = new JComboBox<>(new String[]{"Trống", "Đặt", "Check-in"});
+        cbxStatus = new JComboBox<>(new String[]{"Tất cả / Có thể đặt", "Đặt", "Check-in"});
         styleCombo(cbxStatus);
         pnFilter.add(cbxStatus, "wmin 110");
 
@@ -180,7 +180,7 @@ public class FormRoomBookingManagement extends JPanel {
         });
 
         initShortcuts();
-        cbxStatus.setSelectedItem("Trống");
+        cbxStatus.setSelectedItem("Tất cả / Có thể đặt");
         loadData();
     }
 
@@ -295,8 +295,8 @@ public class FormRoomBookingManagement extends JPanel {
         selectedRoomIDs.clear();
         selectedRoomIDs.addAll(ids);
 
-        cbxStatus.setSelectedItem("Trống");
-        currentStatusFilter = "Trống";
+        cbxStatus.setSelectedItem("Tất cả / Có thể đặt");
+        currentStatusFilter = "Tất cả / Có thể đặt";
 
         updateMultiButtonEnabled();
         showSuggestedRoomsOnGrid(ids);
@@ -388,7 +388,7 @@ public class FormRoomBookingManagement extends JPanel {
                 }
 
                 boolean include = switch (currentStatusFilter) {
-                    case "Trống" -> !hasActiveCheckIn;
+                    case "Tất cả / Có thể đặt" -> true;
                     case "Đặt" -> hasPendingBooking;
                     case "Check-in" -> hasActiveCheckIn;
                     default -> true;
@@ -462,7 +462,7 @@ public class FormRoomBookingManagement extends JPanel {
 
     private void updateMultiButtonEnabled() {
         boolean hasSelection = !selectedRoomIDs.isEmpty();
-        btnMultiBook.setEnabled("Trống".equalsIgnoreCase(currentStatusFilter) && hasSelection);
+        btnMultiBook.setEnabled("Tất cả / Có thể đặt".equalsIgnoreCase(currentStatusFilter) && hasSelection);
     }
 
     private void buildCards(List<RoomDTO> rooms) {
@@ -631,7 +631,7 @@ public class FormRoomBookingManagement extends JPanel {
         menu.add(miAddService);
 
         switch (currentStatusFilter) {
-            case "Trống" -> {
+            case "Tất cả / Có thể đặt" -> {
                 miBookRoom.setEnabled(true);
                 miCheckIn.setEnabled(false);
                 miCheckOut.setEnabled(false);
@@ -1026,9 +1026,18 @@ public class FormRoomBookingManagement extends JPanel {
     }
 
     private boolean canTickForCurrentFilter(RoomDTO room) {
-        if ("Trống".equalsIgnoreCase(currentStatusFilter)) return room.isAvailable();
-        if ("Đặt".equalsIgnoreCase(currentStatusFilter)) return true;
-        if ("Check-in".equalsIgnoreCase(currentStatusFilter)) return true;
+        if ("Tất cả / Có thể đặt".equalsIgnoreCase(currentStatusFilter)) {
+            return true;
+        }
+
+        if ("Đặt".equalsIgnoreCase(currentStatusFilter)) {
+            return true;
+        }
+
+        if ("Check-in".equalsIgnoreCase(currentStatusFilter)) {
+            return true;
+        }
+
         return false;
     }
 
@@ -1127,12 +1136,14 @@ public class FormRoomBookingManagement extends JPanel {
     public void resetFiltersAndReload() {
         txtSearch.setText("");
         cbxType.setSelectedItem("All");
-        cbxStatus.setSelectedItem("Trống");
+        cbxStatus.setSelectedItem("Tất cả / Có thể đặt");
+        currentStatusFilter = "Tất cả / Có thể đặt";
         cbxView.setSelectedItem("All");
         spAdults.setValue(2);
         spChildren.setValue(0);
         selectedRoomIDs.clear();
         loadData();
+        updateMultiButtonEnabled();
     }
 
     public void reload() {
