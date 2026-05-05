@@ -75,7 +75,19 @@ public class RoomStayServiceImpl implements RoomStayService {
             throw new IllegalArgumentException("Mã phòng không hợp lệ.");
         }
 
-        return roomStayRepository.checkIn(roomID.trim());
+        String normalizedRoomId = roomID.trim();
+
+        OrderDetailRoom active = roomStayRepository.getActiveCheckInOfRoom(normalizedRoomId);
+        if (active != null) {
+            throw new IllegalArgumentException("Phòng đã có người check-in không thể check-in.");
+        }
+
+        boolean ok = roomStayRepository.checkIn(normalizedRoomId);
+        if (!ok) {
+            throw new IllegalArgumentException("Không tìm thấy booking chờ check-in hợp lệ.");
+        }
+
+        return true;
     }
 
     @Override
@@ -84,7 +96,12 @@ public class RoomStayServiceImpl implements RoomStayService {
             throw new IllegalArgumentException("Mã chi tiết đặt phòng không hợp lệ.");
         }
 
-        return roomStayRepository.checkInByOdrId(orderDetailRoomId.trim());
+        boolean ok = roomStayRepository.checkInByOdrId(orderDetailRoomId.trim());
+        if (!ok) {
+            throw new IllegalArgumentException("Phòng đã có người check-in không thể check-in.");
+        }
+
+        return true;
     }
 
     @Override

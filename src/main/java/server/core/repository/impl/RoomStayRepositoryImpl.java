@@ -175,19 +175,24 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
     @Override
     public boolean checkIn(String roomID) {
         String query = """
-            MATCH (r:Room {roomId: $roomID})<-[:FOR_ROOM]-(odr:OrderDetailRoom {status:'Đặt'})
-            WITH r, odr
-            ORDER BY odr.checkInDate ASC, odr.orderDetailRoomId ASC
-            LIMIT 1
-            SET odr.status = 'Check-in',
-                r.isAvailable = false
-            RETURN odr
-            """;
+        MATCH (r:Room {roomId: $roomID})
+        OPTIONAL MATCH (r)<-[:FOR_ROOM]-(active:OrderDetailRoom {status:'Check-in'})
+        WITH r, count(active) AS activeCount
+        WHERE activeCount = 0
+
+        MATCH (r)<-[:FOR_ROOM]-(odr:OrderDetailRoom {status:'Đặt'})
+        WITH r, odr
+        ORDER BY odr.checkInDate ASC, odr.orderDetailRoomId ASC
+        LIMIT 1
+
+        SET odr.status = 'Check-in',
+            r.isAvailable = false
+        RETURN odr
+        """;
 
         try (Session session = connManager.openSession()) {
             return session.executeWrite(tx -> {
                 Result result = tx.run(query, Map.of("roomID", roomID));
-
                 return result.consume().counters().propertiesSet() > 0;
             });
         }
@@ -196,16 +201,19 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
     @Override
     public boolean checkInByOdrId(String orderDetailRoomId) {
         String query = """
-            MATCH (odr:OrderDetailRoom {orderDetailRoomId: $odrId, status:'Đặt'})-[:FOR_ROOM]->(r:Room)
-            SET odr.status = 'Check-in',
-                r.isAvailable = false
-            RETURN odr
-            """;
+        MATCH (odr:OrderDetailRoom {orderDetailRoomId: $odrId, status:'Đặt'})-[:FOR_ROOM]->(r:Room)
+        OPTIONAL MATCH (r)<-[:FOR_ROOM]-(active:OrderDetailRoom {status:'Check-in'})
+        WITH odr, r, count(active) AS activeCount
+        WHERE activeCount = 0
+
+        SET odr.status = 'Check-in',
+            r.isAvailable = false
+        RETURN odr
+        """;
 
         try (Session session = connManager.openSession()) {
             return session.executeWrite(tx -> {
                 Result result = tx.run(query, Map.of("odrId", orderDetailRoomId));
-
                 return result.consume().counters().propertiesSet() > 0;
             });
         }
