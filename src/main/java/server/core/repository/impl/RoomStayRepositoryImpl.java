@@ -502,50 +502,102 @@ public class RoomStayRepositoryImpl implements RoomStayRepository {
     }
 
     @Override
-    public boolean changeRoomBeforeCheckIn(String oldRoomID, String newRoomID, LocalDateTime newCheckIn, LocalDateTime newCheckOut) {
+    public boolean changeRoomBeforeCheckIn(String orderDetailRoomId, String oldRoomID, String newRoomID,
+                                           LocalDateTime newCheckIn, LocalDateTime newCheckOut) {
         try (Session session = connManager.openSession()) {
             return session.executeWrite(tx -> {
-                OrderDetailRoom pending = getPendingBookingTx(tx, oldRoomID);
-                if (pending == null) {
+                String findQuery = """
+                MATCH (oldRoom:Room {roomId: $oldRoomID})
+                MATCH (newRoom:Room {roomId: $newRoomID})-[:HAS_TYPE]->(rt:RoomType)
+                MATCH (odr:OrderDetailRoom {orderDetailRoomId: $odrId, status: 'Đặt'})-[rel:FOR_ROOM]->(oldRoom)
+                MATCH (o:Order)-[:HAS_ROOM_DETAIL]->(odr)
+                RETURN odr, rt
+                LIMIT 1
+                """;
+
+                Map<String, Object> findParams = new HashMap<>();
+                findParams.put("oldRoomID", oldRoomID);
+                findParams.put("newRoomID", newRoomID);
+                findParams.put("odrId", orderDetailRoomId);
+
+                Result findResult = tx.run(findQuery, findParams);
+                if (!findResult.hasNext()) {
                     return false;
                 }
 
-                RoomType newRoomType = getRoomTypeByRoomId(tx, newRoomID);
-                if (newRoomType == null || !isRoomAvailable(tx, newRoomID)) {
+                Record record = findResult.next();
+
+                OrderDetailRoom selectedOdr = mapper.toObject(
+                        record.get("odr").asNode().asMap(),
+                        OrderDetailRoom.class
+                );
+
+                RoomType newRoomType = mapper.toObject(
+                        record.get("rt").asNode().asMap(),
+                        RoomType.class
+                );
+
+                if (selectedOdr.getBookingType() == null) {
+                    return false;
+                }
+
+                String overlapQuery = """
+                MATCH (newRoom:Room {roomId: $newRoomID})<-[:FOR_ROOM]-(conflict:OrderDetailRoom)
+                WHERE conflict.status IN ['Đặt', 'Check-in']
+                  AND conflict.orderDetailRoomId <> $odrId
+                  AND conflict.checkInDate < $newCheckOut
+                  AND conflict.checkOutDate > $newCheckIn
+                RETURN conflict.orderDetailRoomId AS conflictId,
+                       conflict.checkInDate AS conflictCheckIn,
+                       conflict.checkOutDate AS conflictCheckOut
+                LIMIT 1
+                """;
+
+                Map<String, Object> overlapParams = new HashMap<>();
+                overlapParams.put("newRoomID", newRoomID);
+                overlapParams.put("odrId", orderDetailRoomId);
+                overlapParams.put("newCheckIn", newCheckIn);
+                overlapParams.put("newCheckOut", newCheckOut);
+
+                Result overlapResult = tx.run(overlapQuery, overlapParams);
+                if (overlapResult.hasNext()) {
                     return false;
                 }
 
                 double newFee = calculateRoomFee(
                         newRoomType,
-                        pending.getBookingType() == null ? null : pending.getBookingType().toString(),
+                        selectedOdr.getBookingType().toString(),
                         newCheckIn,
                         newCheckOut
                 );
 
-                String query = """
-                    MATCH (oldRoom:Room {roomId: $oldRoomID})
-                    MATCH (newRoom:Room {roomId: $newRoomID})
-                    MATCH (odr:OrderDetailRoom {orderDetailRoomId: $odrId})-[rel:FOR_ROOM]->(oldRoom)
-                    DELETE rel
-                    MERGE (odr)-[:FOR_ROOM]->(newRoom)
-                    SET odr.checkInDate = $newCheckIn,
-                        odr.checkOutDate = $newCheckOut,
-                        odr.roomFee = $newFee,
-                        odr.status = 'Đặt',
-                        oldRoom.isAvailable = true
-                    RETURN odr
-                    """;
+                String updateQuery = """
+                MATCH (oldRoom:Room {roomId: $oldRoomID})
+                MATCH (newRoom:Room {roomId: $newRoomID})
+                MATCH (odr:OrderDetailRoom {orderDetailRoomId: $odrId, status: 'Đặt'})-[rel:FOR_ROOM]->(oldRoom)
+                DELETE rel
+                MERGE (odr)-[:FOR_ROOM]->(newRoom)
+                SET odr.checkInDate = $newCheckIn,
+                    odr.checkOutDate = $newCheckOut,
+                    odr.roomFee = $newFee,
+                    odr.status = 'Đặt'
+                WITH oldRoom, newRoom, odr
+                OPTIONAL MATCH (oldRoom)<-[:FOR_ROOM]-(oldActive:OrderDetailRoom {status:'Check-in'})
+                WITH oldRoom, newRoom, odr, count(oldActive) AS oldActiveCount
+                SET oldRoom.isAvailable = CASE WHEN oldActiveCount > 0 THEN false ELSE true END
+                RETURN odr
+                """;
 
-                Map<String, Object> params = new HashMap<>();
-                params.put("oldRoomID", oldRoomID);
-                params.put("newRoomID", newRoomID);
-                params.put("odrId", pending.getOrderDetailRoomId());
-                params.put("newCheckIn", newCheckIn);
-                params.put("newCheckOut", newCheckOut);
-                params.put("newFee", newFee);
+                Map<String, Object> updateParams = new HashMap<>();
+                updateParams.put("oldRoomID", oldRoomID);
+                updateParams.put("newRoomID", newRoomID);
+                updateParams.put("odrId", orderDetailRoomId);
+                updateParams.put("newCheckIn", newCheckIn);
+                updateParams.put("newCheckOut", newCheckOut);
+                updateParams.put("newFee", newFee);
 
-                Result result = tx.run(query, params);
-                SummaryCounters counters = result.consume().counters();
+                Result updateResult = tx.run(updateQuery, updateParams);
+                SummaryCounters counters = updateResult.consume().counters();
 
                 return counters.propertiesSet() > 0 || counters.relationshipsCreated() > 0;
             });

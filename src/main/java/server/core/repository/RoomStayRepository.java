@@ -35,7 +35,7 @@ public interface RoomStayRepository {
 
     OrderDetailRoom getActiveCheckInOfRoom(String roomID);
 
-    boolean changeRoomBeforeCheckIn(String oldRoomID, String newRoomID, LocalDateTime newCheckIn, LocalDateTime newCheckOut);
+    boolean changeRoomBeforeCheckIn(String orderDetailRoomId, String oldRoomID, String newRoomID, LocalDateTime newCheckIn, LocalDateTime newCheckOut);
 
     boolean changeRoomWhileCheckIn(String oldRoomID, String newRoomID, LocalDateTime changeTime);
 

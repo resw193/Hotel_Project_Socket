@@ -40,7 +40,7 @@ public interface RoomStayService {
 
     Double calculateFeeByRoom(String roomID, String bookingType, LocalDateTime from, LocalDateTime to);
 
-    boolean changeRoomBeforeCheckIn(String oldRoomID, String newRoomID, LocalDateTime newCheckIn, LocalDateTime newCheckOut);
+    boolean changeRoomBeforeCheckIn(String orderDetailRoomId, String oldRoomID, String newRoomID, LocalDateTime newCheckIn, LocalDateTime newCheckOut);
 
     boolean changeRoomWhileCheckIn(String oldRoomID, String newRoomID, LocalDateTime changeTime);
 

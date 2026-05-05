@@ -582,11 +582,17 @@ public class RequestDispatcher {
 
     private BaseResponse handleChangeRoomBeforeCheckIn(BaseRequest request) {
         Object data = request.getData();
+
         if (!(data instanceof ChangeRoomBeforeCheckInRequestDTO dto)) {
             return BaseResponse.error("Dữ liệu CHANGE_ROOM_BEFORE_CHECKIN không hợp lệ.");
         }
 
+        if (dto.getOrderDetailRoomId() == null || dto.getOrderDetailRoomId().trim().isEmpty()) {
+            return BaseResponse.error("Thiếu mã booking cần đổi phòng.");
+        }
+
         boolean ok = roomStayService.changeRoomBeforeCheckIn(
+                dto.getOrderDetailRoomId(),
                 dto.getOldRoomID(),
                 dto.getNewRoomID(),
                 dto.getNewCheckIn(),

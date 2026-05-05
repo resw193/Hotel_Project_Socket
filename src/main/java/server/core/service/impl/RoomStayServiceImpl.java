@@ -233,13 +233,37 @@ public class RoomStayServiceImpl implements RoomStayService {
     }
 
     @Override
-    public boolean changeRoomBeforeCheckIn(String oldRoomID, String newRoomID, LocalDateTime newCheckIn, LocalDateTime newCheckOut) {
+    public boolean changeRoomBeforeCheckIn(String orderDetailRoomId, String oldRoomID, String newRoomID,
+                                           LocalDateTime newCheckIn, LocalDateTime newCheckOut) {
+        if (isBlank(orderDetailRoomId)) {
+            throw new IllegalArgumentException("Thiếu mã chi tiết booking cần đổi phòng.");
+        }
+
         if (isBlank(oldRoomID) || isBlank(newRoomID)) {
             throw new IllegalArgumentException("Thiếu mã phòng.");
         }
+
+        if (oldRoomID.trim().equalsIgnoreCase(newRoomID.trim())) {
+            throw new IllegalArgumentException("Phòng mới phải khác phòng cũ.");
+        }
+
         validateTimeRange(newCheckIn, newCheckOut);
 
-        return roomStayRepository.changeRoomBeforeCheckIn(oldRoomID.trim(), newRoomID.trim(), newCheckIn, newCheckOut);
+        boolean ok = roomStayRepository.changeRoomBeforeCheckIn(
+                orderDetailRoomId.trim(),
+                oldRoomID.trim(),
+                newRoomID.trim(),
+                newCheckIn,
+                newCheckOut
+        );
+
+        if (!ok) {
+            throw new IllegalArgumentException(
+                    "Không thể đổi phòng. Phòng mới đã có booking/check-in trùng khung giờ hoặc booking cần đổi không hợp lệ."
+            );
+        }
+
+        return true;
     }
 
     @Override
