@@ -1,7 +1,6 @@
 package client.presentation.roomBooking;
 
 import client.network.socket.SocketSessionManager;
-import com.raven.datechooser.DateChooser;
 import common.dto.OdrInfoDTO;
 import common.dto.RoomDTO;
 import common.dto.request_dto.CalculateRoomFeeRequestDTO;
@@ -17,6 +16,9 @@ import java.awt.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.util.Calendar;
+import java.util.Date;
 import java.time.format.DateTimeFormatter;
 
 public class FormChangeRoomWhileCheckInDetail extends JDialog {
@@ -600,10 +602,6 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
         JTextField txtDate = new JTextField(current.toLocalDate().format(dateFormatter));
         styleTextField(txtDate);
 
-        DateChooser dateChooser = new DateChooser();
-        dateChooser.setTextRefernce(txtDate);
-        dateChooser.setDateFormat("dd/MM/yyyy");
-
         JSpinner spHour = new JSpinner(new SpinnerNumberModel(current.getHour(), 0, 23, 1));
         JSpinner spMin = new JSpinner(new SpinnerNumberModel(current.getMinute(), 0, 59, 1));
 
@@ -621,8 +619,14 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
         timePanel.add(spMin);
         timePanel.add(lbMin);
 
+        JButton btnPickDate = smallDateButton(txtDate);
+        JPanel dateWrap = new JPanel(new MigLayout("insets 0, gap 8", "[grow,fill][44!]", "[]"));
+        dateWrap.setOpaque(false);
+        dateWrap.add(txtDate, "growx");
+        dateWrap.add(btnPickDate, "growy");
+
         content.add(label("Ngày chuyển:"));
-        content.add(txtDate, "growx");
+        content.add(dateWrap, "growx");
 
         content.add(label("Giờ chuyển:"));
         content.add(timePanel, "growx, wrap");
@@ -699,6 +703,56 @@ public class FormChangeRoomWhileCheckInDetail extends JDialog {
         d.setVisible(true);
 
         return result[0];
+    }
+
+
+    private JButton smallDateButton(JTextField field) {
+        JButton b = new JButton("📅");
+        b.setFocusable(false);
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        b.setBackground(PRIMARY);
+        b.setForeground(new Color(0x0B1F33));
+        b.setBorder(BorderFactory.createLineBorder(BORDER));
+        b.addActionListener(e -> showDatePopup(field));
+        return b;
+    }
+
+    private void showDatePopup(JTextField field) {
+        LocalDate current = parseDateSafe(field.getText().trim());
+        if (current == null) current = LocalDate.now();
+
+        Date initDate = Date.from(current.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        SpinnerDateModel model = new SpinnerDateModel(initDate, null, null, Calendar.DAY_OF_MONTH);
+        JSpinner spDate = new JSpinner(model);
+        spDate.setEditor(new JSpinner.DateEditor(spDate, "dd/MM/yyyy"));
+        spDate.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        JPanel panel = new JPanel(new MigLayout("wrap 1, insets 12, gap 8", "[260!,fill]"));
+        panel.add(new JLabel("Chọn ngày:"));
+        panel.add(spDate, "growx");
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Chọn ngày chuyển",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result == JOptionPane.OK_OPTION) {
+            Date selected = (Date) spDate.getValue();
+            LocalDate date = selected.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            field.setText(date.format(dateFormatter));
+        }
+    }
+
+    private LocalDate parseDateSafe(String text) {
+        try {
+            if (text == null || text.trim().isEmpty()) return null;
+            return LocalDate.parse(text.trim(), dateFormatter);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void applyLargeDialogSize(double widthRatio, double heightRatio, int minWidth, int minHeight) {

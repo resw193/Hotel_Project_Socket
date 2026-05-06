@@ -4,8 +4,6 @@ import client.network.socket.HotelClient;
 import client.network.socket.SocketRequestExecutor;
 import client.network.socket.SocketSessionManager;
 import client.presentation.login.main.Application;
-import com.raven.datechooser.DateChooser;
-import com.raven.datechooser.SelectedAction;
 import common.dto.CustomerDTO;
 import common.dto.request_dto.BookRoomRequestDTO;
 import common.protocol.command.CommandType;
@@ -58,10 +56,6 @@ public class FormMultiBookRooms extends JDialog {
     private JSpinner spHours;
     private JLabel lblHours;
     private JLabel lblNightNote;
-
-    private DateChooser chBooking;
-    private DateChooser chCheckIn;
-    private DateChooser chCheckOut;
 
     private JTable table;
     private RoomMultiBookTableModel tableModel;
@@ -142,19 +136,15 @@ public class FormMultiBookRooms extends JDialog {
         cbxBookingType = new JComboBox<>(new String[]{"Giờ", "Ngày", "Đêm"});
         styleCombo(cbxBookingType);
 
-        chBooking = makeChooser(txtBookingDate);
-        chCheckIn = makeChooser(txtCheckIn);
-        chCheckOut = makeChooser(txtCheckOut);
-
         txtBookingDate.setText(LocalDate.now().format(df));
         txtCheckIn.setText(LocalDate.now().format(df));
         txtCheckOut.setText(LocalDate.now().format(df));
         setSpinnerTime(spCheckInTime, LocalTime.now().withSecond(0).withNano(0));
         setSpinnerTime(spCheckOutTime, LocalTime.now().plusHours(2).withSecond(0).withNano(0));
 
-        JButton btnPickBD = btnCal(chBooking);
-        JButton btnPickCI = btnCal(chCheckIn);
-        JButton btnPickCO = btnCal(chCheckOut);
+        JButton btnPickBD = btnCal(txtBookingDate);
+        JButton btnPickCI = btnCal(txtCheckIn);
+        JButton btnPickCO = btnCal(txtCheckOut);
 
         pTime.add(label("Ngày đặt phòng:"));
         pTime.add(rowDate(txtBookingDate, btnPickBD), "growx, wrap");
@@ -217,13 +207,8 @@ public class FormMultiBookRooms extends JDialog {
         setContentPane(root);
 
         attachAutoFillCustomerByPhone();
-
-        chCheckIn.addEventDateChooser((a, d) -> {
-            if (a.getAction() == SelectedAction.DAY_SELECTED) SwingUtilities.invokeLater(this::applyDefaultsToTable);
-        });
-        chCheckOut.addEventDateChooser((a, d) -> {
-            if (a.getAction() == SelectedAction.DAY_SELECTED) SwingUtilities.invokeLater(this::applyDefaultsToTable);
-        });
+        attachDateChangeListener(txtCheckIn, this::applyDefaultsToTable);
+        attachDateChangeListener(txtCheckOut, this::applyDefaultsToTable);
 
         spCheckInTime.addChangeListener(e -> {
             String bt = String.valueOf(cbxBookingType.getSelectedItem());
@@ -342,8 +327,6 @@ public class FormMultiBookRooms extends JDialog {
         JTextField txtCO = dateField();
         JSpinner spCI = timeSpinner();
         JSpinner spCO = timeSpinner();
-        DateChooser chCI = makeChooser(txtCI);
-        DateChooser chCO = makeChooser(txtCO);
         JComboBox<String> cbType = new JComboBox<>(new String[]{"Giờ", "Ngày", "Đêm"});
         styleCombo(cbType);
 
@@ -363,8 +346,8 @@ public class FormMultiBookRooms extends JDialog {
         setSpinnerTime(spCO, checkOut.toLocalTime());
         cbType.setSelectedItem(bookingType);
 
-        d.add(label("Check-in:")); d.add(rowDateTime(txtCI, btnCal(chCI), spCI), "growx");
-        d.add(label("Check-out:")); d.add(rowDateTime(txtCO, btnCal(chCO), spCO), "growx");
+        d.add(label("Check-in:")); d.add(rowDateTime(txtCI, btnCal(txtCI), spCI), "growx");
+        d.add(label("Check-out:")); d.add(rowDateTime(txtCO, btnCal(txtCO), spCO), "growx");
         d.add(label("Kiểu đặt:")); d.add(cbType, "growx");
         d.add(label("Số giờ/đêm:")); d.add(spUsage, "growx");
 
@@ -634,12 +617,15 @@ public class FormMultiBookRooms extends JDialog {
         return p;
     }
 
-    private JButton btnCal(DateChooser chooser) {
+    private JButton btnCal(JTextField field) {
         JButton b = new JButton("📅");
         b.setBackground(GOLD);
         b.setForeground(Color.BLACK);
         b.setFocusPainted(false);
-        b.addActionListener(e -> chooser.showPopup());
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        b.addActionListener(e -> showDatePopup(field));
+
         return b;
     }
 
@@ -666,11 +652,48 @@ public class FormMultiBookRooms extends JDialog {
         c.setFont(new Font("Segoe UI", Font.PLAIN, 14));
     }
 
-    private DateChooser makeChooser(JTextField field) {
-        DateChooser chooser = new DateChooser();
-        chooser.setTextRefernce(field);
-        return chooser;
+    private void attachDateChangeListener(JTextField field, Runnable action) {
+        field.getDocument().addDocumentListener(new DocumentListener() {
+            private void run() {
+                SwingUtilities.invokeLater(action);
+            }
+
+            @Override public void insertUpdate(DocumentEvent e) { run(); }
+            @Override public void removeUpdate(DocumentEvent e) { run(); }
+            @Override public void changedUpdate(DocumentEvent e) { run(); }
+        });
     }
+
+    private void showDatePopup(JTextField field) {
+        LocalDate current = parseDate(field.getText().trim());
+        if (current == null) current = LocalDate.now();
+
+        Date initDate = Date.from(current.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        SpinnerDateModel model = new SpinnerDateModel(initDate, null, null, Calendar.DAY_OF_MONTH);
+        JSpinner spDate = new JSpinner(model);
+        spDate.setEditor(new JSpinner.DateEditor(spDate, "dd-MM-yyyy"));
+        spDate.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        JPanel panel = new JPanel(new MigLayout("wrap 1, insets 12, gap 8", "[260!,fill]"));
+        panel.add(new JLabel("Chọn ngày:"));
+        panel.add(spDate, "growx");
+
+        Window owner = SwingUtilities.getWindowAncestor(field);
+        int result = JOptionPane.showConfirmDialog(
+                owner == null ? this : owner,
+                panel,
+                "Chọn ngày",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result == JOptionPane.OK_OPTION) {
+            Date selected = (Date) spDate.getValue();
+            LocalDate date = selected.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            field.setText(date.format(df));
+        }
+    }
+
 
     private LocalDate parseDate(String s) {
         try {

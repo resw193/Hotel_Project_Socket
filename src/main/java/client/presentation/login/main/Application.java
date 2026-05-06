@@ -32,7 +32,7 @@ public class Application extends JFrame {
 
     public static final SessionContext session = new SessionContext();
 
-    private static final String SOCKET_HOST = "localhost";
+    private static final String SOCKET_HOST = "Cordev";
     private static final int SOCKET_PORT = 1111;
 
     private MainForm mainForm;

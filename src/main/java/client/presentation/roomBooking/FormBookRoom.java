@@ -4,8 +4,6 @@ import client.network.socket.HotelClient;
 import client.network.socket.SocketRequestExecutor;
 import client.network.socket.SocketSessionManager;
 import client.presentation.login.main.Application;
-import com.raven.datechooser.DateChooser;
-import com.raven.datechooser.SelectedAction;
 import common.dto.CustomerDTO;
 import common.dto.request_dto.BookRoomRequestDTO;
 import common.protocol.command.CommandType;
@@ -45,7 +43,6 @@ public class FormBookRoom extends JDialog {
     private JSpinner spCheckInTime, spCheckOutTime, spHours;
     private JLabel lblHours, lblNightNote;
 
-    private DateChooser chBooking, chCheckIn, chCheckOut;
     private final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private String lastAutoPhone = null;
 
@@ -110,17 +107,10 @@ public class FormBookRoom extends JDialog {
         cbxBookingType.setForeground(FG);
         cbxBookingType.setBorder(BorderFactory.createLineBorder(BORDER, 1));
         cbxBookingType.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-
-        chBooking = makeChooser(txtBookingDate);
-        chCheckIn = makeChooser(txtCheckIn);
-        chCheckOut = makeChooser(txtCheckOut);
-
-        chCheckIn.addEventDateChooser((action, date) -> {
-            if (action.getAction() == SelectedAction.DAY_SELECTED) {
-                String bt = String.valueOf(cbxBookingType.getSelectedItem());
-                if ("Giờ".equalsIgnoreCase(bt)) updateCheckoutFieldsForHourType();
-                else if ("Đêm".equalsIgnoreCase(bt)) updateCheckoutFieldsForNightTypeSingle();
-            }
+        attachDateChangeListener(txtCheckIn, () -> {
+            String bt = String.valueOf(cbxBookingType.getSelectedItem());
+            if ("Giờ".equalsIgnoreCase(bt)) updateCheckoutFieldsForHourType();
+            else if ("Đêm".equalsIgnoreCase(bt)) updateCheckoutFieldsForNightTypeSingle();
         });
 
         pnRoot.add(label("Room ID:"));             pnRoot.add(txtRoomID, "growx");
@@ -129,12 +119,12 @@ public class FormBookRoom extends JDialog {
         pnRoot.add(label("Phone:"));               pnRoot.add(txtPhone, "growx");
         pnRoot.add(label("Email:"));               pnRoot.add(txtEmail, "growx");
         pnRoot.add(label("ID Card:"));             pnRoot.add(txtIdCard, "growx");
-        pnRoot.add(label("Ngày đặt phòng:"));      pnRoot.add(rowWithPicker(txtBookingDate, btnCalendar(chBooking)), "growx");
-        pnRoot.add(label("Check-in date/time:"));  pnRoot.add(rowWithPickerDateTime(txtCheckIn, btnCalendar(chCheckIn), spCheckInTime), "growx");
+        pnRoot.add(label("Ngày đặt phòng:"));      pnRoot.add(rowWithPicker(txtBookingDate, btnCalendar(txtBookingDate)), "growx");
+        pnRoot.add(label("Check-in date/time:"));  pnRoot.add(rowWithPickerDateTime(txtCheckIn, btnCalendar(txtCheckIn), spCheckInTime), "growx");
         pnRoot.add(lblHours, "hidemode 3");
         pnRoot.add(spHours, "growx, hidemode 3");
         pnRoot.add(lblNightNote, "span 2, gapleft 150, hidemode 3");
-        pnRoot.add(label("Check-out date/time:")); pnRoot.add(rowWithPickerDateTime(txtCheckOut, btnCalendar(chCheckOut), spCheckOutTime), "growx");
+        pnRoot.add(label("Check-out date/time:")); pnRoot.add(rowWithPickerDateTime(txtCheckOut, btnCalendar(txtCheckOut), spCheckOutTime), "growx");
         pnRoot.add(label("Kiểu đặt phòng:"));      pnRoot.add(cbxBookingType, "growx");
 
         JButton btnBookRoom = primaryButton("ĐẶT PHÒNG");
@@ -406,12 +396,15 @@ public class FormBookRoom extends JDialog {
         return p;
     }
 
-    private JButton btnCalendar(DateChooser chooser) {
+    private JButton btnCalendar(JTextField field) {
         JButton b = new JButton("📅");
         b.setBackground(GOLD);
         b.setForeground(Color.BLACK);
         b.setFocusPainted(false);
-        b.addActionListener(e -> chooser.showPopup());
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        b.addActionListener(e -> showDatePopup(field));
+
         return b;
     }
 
@@ -438,11 +431,47 @@ public class FormBookRoom extends JDialog {
         return l;
     }
 
-    private DateChooser makeChooser(JTextField field) {
-        DateChooser chooser = new DateChooser();
-        chooser.setTextRefernce(field);
-        return chooser;
+    private void attachDateChangeListener(JTextField field, Runnable action) {
+        field.getDocument().addDocumentListener(new DocumentListener() {
+            private void run() {
+                SwingUtilities.invokeLater(action);
+            }
+
+            @Override public void insertUpdate(DocumentEvent e) { run(); }
+            @Override public void removeUpdate(DocumentEvent e) { run(); }
+            @Override public void changedUpdate(DocumentEvent e) { run(); }
+        });
     }
+
+    private void showDatePopup(JTextField field) {
+        LocalDate current = parseDate(field.getText().trim());
+        if (current == null) current = LocalDate.now();
+
+        Date initDate = Date.from(current.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        SpinnerDateModel model = new SpinnerDateModel(initDate, null, null, Calendar.DAY_OF_MONTH);
+        JSpinner spDate = new JSpinner(model);
+        spDate.setEditor(new JSpinner.DateEditor(spDate, "dd-MM-yyyy"));
+        spDate.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        JPanel panel = new JPanel(new MigLayout("wrap 1, insets 12, gap 8", "[260!,fill]"));
+        panel.add(new JLabel("Chọn ngày:"));
+        panel.add(spDate, "growx");
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Chọn ngày",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result == JOptionPane.OK_OPTION) {
+            Date selected = (Date) spDate.getValue();
+            LocalDate date = selected.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            field.setText(date.format(formatter));
+        }
+    }
+
 
     private LocalDate parseDate(String s) {
         try {

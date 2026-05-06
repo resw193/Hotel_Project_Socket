@@ -2,7 +2,6 @@ package client.presentation.roomBooking;
 
 import client.network.socket.SocketSessionManager;
 import com.formdev.flatlaf.FlatClientProperties;
-import com.raven.datechooser.DateChooser;
 import common.dto.OdrInfoDTO;
 import common.dto.request_dto.ExtendRoomRequestDTO;
 import common.dto.request_dto.RoomIdRequestDTO;
@@ -257,9 +256,7 @@ public class FormExtendRoom extends JDialog {
         btnDate.setBorder(BorderFactory.createLineBorder(BORDER));
         btnDate.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        DateChooser chooser = new DateChooser();
-        chooser.setTextRefernce(txtNewCheckOutDate);
-        btnDate.addActionListener(e -> chooser.showPopup());
+        btnDate.addActionListener(e -> showDatePopup(txtNewCheckOutDate));
 
         spNewCheckOutTime = createTimeSpinner();
         spNewCheckOutTime.addChangeListener(e -> updatePreview());
@@ -413,6 +410,45 @@ public class FormExtendRoom extends JDialog {
     }
 
 
+
+    private void showDatePopup(JTextField field) {
+        LocalDate current = parseDateSafe(field.getText().trim());
+        if (current == null) current = LocalDate.now();
+
+        Date initDate = Date.from(current.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        SpinnerDateModel model = new SpinnerDateModel(initDate, null, null, Calendar.DAY_OF_MONTH);
+        JSpinner spDate = new JSpinner(model);
+        spDate.setEditor(new JSpinner.DateEditor(spDate, "dd-MM-yyyy"));
+        spDate.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        JPanel panel = new JPanel(new MigLayout("wrap 1, insets 12, gap 8", "[260!,fill]"));
+        panel.add(new JLabel("Chọn ngày:"));
+        panel.add(spDate, "growx");
+
+        int result = JOptionPane.showConfirmDialog(
+                this,
+                panel,
+                "Chọn ngày",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+        );
+
+        if (result == JOptionPane.OK_OPTION) {
+            Date selected = (Date) spDate.getValue();
+            LocalDate date = selected.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            field.setText(date.format(dateFormatter));
+        }
+    }
+
+    private LocalDate parseDateSafe(String text) {
+        try {
+            if (text == null || text.trim().isEmpty()) return null;
+            return LocalDate.parse(text.trim(), dateFormatter);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // Load bookings
     private void loadBookings() {
         try {
@@ -492,7 +528,7 @@ public class FormExtendRoom extends JDialog {
 
         if (odr.getCheckOut() != null) {
             txtNewCheckOutDate.setText(odr.getCheckOut().toLocalDate().format(dateFormatter));
-            spNewCheckOutTime.setValue(java.util.Date.from(
+            spNewCheckOutTime.setValue(Date.from(
                     odr.getCheckOut()
                             .atZone(ZoneId.systemDefault())
                             .toInstant()
@@ -686,7 +722,7 @@ public class FormExtendRoom extends JDialog {
     }
 
     private LocalTime getSpinnerTime(JSpinner spinner) {
-        java.util.Date value = (java.util.Date) spinner.getValue();
+        Date value = (Date) spinner.getValue();
         return value.toInstant()
                 .atZone(ZoneId.systemDefault())
                 .toLocalTime()
@@ -835,7 +871,7 @@ public class FormExtendRoom extends JDialog {
         JSpinner sp = new JSpinner(model);
         JSpinner.DateEditor editor = new JSpinner.DateEditor(sp, "HH:mm");
         sp.setEditor(editor);
-        sp.setValue(java.util.Date.from(
+        sp.setValue(Date.from(
                 LocalDateTime.now().withHour(12).withMinute(0).withSecond(0).withNano(0)
                         .atZone(ZoneId.systemDefault()).toInstant()
         ));
